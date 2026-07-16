@@ -86,7 +86,12 @@
     <div class="card" id="card-rituals" style="--i:1">
       <div class="card-head">
         <h2 class="label">Non&#8209;negotiables</h2>
-        <button id="ritual-add-btn" class="round-btn" aria-label="Add non-negotiable">+</button>
+        <span class="head-actions">
+          <button id="share-btn" class="round-btn share-btn" aria-label="Share your streaks">
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4m0 0L8 8m4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
+          </button>
+          <button id="ritual-add-btn" class="round-btn" aria-label="Add non-negotiable">+</button>
+        </span>
       </div>
       <ul id="rituals" class="rituals"></ul>
       <form id="ritual-form" class="inline-form" hidden>
@@ -163,6 +168,29 @@
   </div>
   <button id="sign-out" class="sheet-signout">Sign out</button>
 </aside>
+
+<!-- share card -->
+<aside id="share-sheet" class="sheet share-sheet" hidden aria-label="Share your streak">
+  <div class="sheet-handle"></div>
+  <p class="share-title">Share your streak</p>
+  <div class="share-stage">
+    <canvas id="share-canvas" aria-label="Your streak card"></canvas>
+  </div>
+  <div class="share-controls">
+    <div class="share-flip" role="group" aria-label="Card theme">
+      <button id="share-theme-dark" class="share-flip-btn">dark</button>
+      <button id="share-theme-light" class="share-flip-btn">light</button>
+    </div>
+    <button id="share-go" class="share-go">Share</button>
+  </div>
+</aside>
+
+<!-- milestone toast -->
+<button id="milestone-toast" class="milestone-toast" hidden>
+  <span class="mt-burst" aria-hidden="true"></span>
+  <span id="milestone-text"></span>
+  <strong>share it</strong>
+</button>
 
 <!-- avatar cropper -->
 <div id="cropper" class="cropper" hidden>

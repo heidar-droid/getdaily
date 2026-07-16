@@ -1,6 +1,7 @@
 /* Daily — client (public, multi-user). Clerk auth + Supabase Postgres w/ RLS. */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Clerk } from "https://esm.sh/@clerk/clerk-js@5";
+import { renderShareCard, shareOrDownload } from "/app/share-card.js";
 
 const CLERK_PK = "pk_live_Y2xlcmsuZ2V0ZGFpbHkuZGF5JA";
 const clerk = new Clerk(CLERK_PK);
@@ -349,6 +350,7 @@ async function toggleRitual(r, li) {
   const streak = streakOf(r.id, viewDate);
   st.textContent = streak > 0 ? "×" + streak : "";
   st.classList.remove("tick"); void st.offsetWidth; st.classList.add("tick");
+  if (nowChecked) maybeMilestone(r, streak);
   await persist(async () => {
     if (nowChecked) {
       must(await sb.from("ritual_checks").upsert({ ritual_id: r.id, date: viewDate }).select());
@@ -686,6 +688,7 @@ $("#crop-save").addEventListener("click", async () => {
 const TOUR_STEPS = [
   { sel: ".card-hero", text: "This ring fills as you finish today's tasks. Small wins, made visible." },
   { sel: "#card-rituals", text: "Non-negotiables — the few things you do every single day. They reset each morning and build a streak." },
+  { sel: "#share-btn", text: "When a streak is worth flexing, share it. This turns your streaks into a card for your Story, no task text ever included." },
   { sel: ".card-ink", text: "Today's tasks. Done work stays on the board — wins should be seen." },
   { sel: "#card-notes", text: "Catch thoughts here as they come. Each one is saved with its moment." },
   { sel: "#days", text: "Your last 14 days. Tap any dot to look back. And one detail: your day rolls over at 04:00, not midnight." },
@@ -789,6 +792,95 @@ async function start() {
   await loadDay();
   maybeStartTour();
   setInterval(renderDate, 60_000);
+}
+
+// ---------- share card ----------
+
+const shareSheet = $("#share-sheet");
+const shareCanvas = $("#share-canvas");
+let shareTheme = "dark";
+
+function shareData() {
+  const streaks = state.rituals
+    .map((r) => ({ label: r.label, streak: streakOf(r.id, viewDate) }))
+    .filter((s) => s.streak > 0)
+    .sort((a, b) => b.streak - a.streak)
+    .slice(0, 3);
+  const d = asDate(viewDate);
+  return {
+    streaks,
+    completion: { done: state.tasks.filter((t) => t.done).length, total: state.tasks.length },
+    dateLabel: d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+  };
+}
+
+function paintShareFlip() {
+  $("#share-theme-dark").classList.toggle("on", shareTheme === "dark");
+  $("#share-theme-light").classList.toggle("on", shareTheme === "light");
+}
+
+function openShareSheet() {
+  shareTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  paintShareFlip();
+  renderShareCard(shareCanvas, shareData(), shareTheme);
+  const go = $("#share-go");
+  go.textContent = "Share"; go.classList.remove("done");
+  backdrop.hidden = false; shareSheet.hidden = false;
+  backdrop.classList.remove("closing"); shareSheet.classList.remove("closing");
+}
+function closeShareSheet() {
+  backdrop.classList.add("closing"); shareSheet.classList.add("closing");
+  setTimeout(() => { backdrop.hidden = true; shareSheet.hidden = true; }, 280);
+}
+function flipShareTheme(t) {
+  if (t === shareTheme) return;
+  shareTheme = t;
+  paintShareFlip();
+  shareCanvas.classList.add("flipping");
+  setTimeout(async () => {
+    await renderShareCard(shareCanvas, shareData(), shareTheme);
+    shareCanvas.classList.remove("flipping");
+  }, 180);
+}
+
+$("#share-btn").addEventListener("click", openShareSheet);
+$("#share-theme-dark").addEventListener("click", () => flipShareTheme("dark"));
+$("#share-theme-light").addEventListener("click", () => flipShareTheme("light"));
+$("#share-go").addEventListener("click", async () => {
+  const go = $("#share-go");
+  const result = await shareOrDownload(shareCanvas);
+  if (result === "cancelled") return;
+  go.textContent = result === "shared" ? "Shared ✓" : "Saved ✓";
+  go.classList.add("done");
+  setTimeout(closeShareSheet, 900);
+});
+backdrop.addEventListener("click", () => { if (!shareSheet.hidden) closeShareSheet(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !shareSheet.hidden) closeShareSheet();
+});
+
+// milestone nudge: one-time toast when a streak lands on a milestone
+const MILESTONES = [7, 14, 30, 50, 100, 365];
+let toastTimer = null;
+
+function maybeMilestone(r, streak) {
+  if (!MILESTONES.includes(streak)) return;
+  const key = `daily.ms.${r.id}.${streak}`;
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, "1");
+  const toast = $("#milestone-toast");
+  $("#milestone-text").textContent = `×${streak} on ${r.label} —`;
+  toast.hidden = false;
+  toast.classList.remove("leaving");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => dismissToast(), 7000);
+  toast.onclick = () => { dismissToast(); openShareSheet(); };
+}
+function dismissToast() {
+  const toast = $("#milestone-toast");
+  if (toast.hidden) return;
+  toast.classList.add("leaving");
+  setTimeout(() => { toast.hidden = true; }, 300);
 }
 
 applyTheme(localStorage.getItem(THEME_STORE) || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
