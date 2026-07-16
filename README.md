@@ -6,7 +6,7 @@ Live at **[getdaily.day](https://getdaily.day)**. Free, no App Store, works on y
 
 I built this for builders.
 
-![Daily on desktop and mobile](assets/combo-devices.jpg)
+![I built this for builders: Daily with its UI cards spilling out of the phone](assets/launch-card.jpg)
 
 ## Why
 
