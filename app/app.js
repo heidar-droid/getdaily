@@ -2,7 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Clerk } from "https://esm.sh/@clerk/clerk-js@5";
 
-const CLERK_PK = "pk_test_Y3VkZGx5LXNuYWtlLTYzLmNsZXJrLmFjY291bnRzLmRldiQ";
+const CLERK_PK = "pk_live_Y2xlcmsuZ2V0ZGFpbHkuZGF5JA";
 const clerk = new Clerk(CLERK_PK);
 
 const SB_URL = "https://vsroavacejmeiaosgubk.supabase.co";
