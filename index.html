@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily, one day at a time</title>
+<meta name="description" content="The five-second command center for entrepreneurs: today's tasks, the habits you never skip, and every stray thought caught before it's gone.">
+<meta property="og:title" content="Daily, one day at a time">
+<meta property="og:description" content="A deliberately small app for founders whose days run them. Tasks, non-negotiables, thoughts. Nothing else.">
+<meta property="og:image" content="https://getdaily.day/assets/combo-devices.jpg">
+<meta name="theme-color" content="#f5f5f5">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='black' stroke-width='9'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  html { scroll-behavior: smooth; }
+  .landing { overflow-x: clip; }
+  .l-wrap { max-width: 1060px; margin: 0 auto; padding: 0 1.4rem; }
+
+  /* nav */
+  .l-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: clamp(1.2rem, 3vw, 2rem) 0;
+    animation: rise .7s var(--ease-out) both;
+  }
+  .l-brand { display: flex; align-items: center; gap: .65rem; font-weight: 500; font-size: 1.35rem; }
+  .l-mark { width: 19px; height: 19px; border: 3.5px solid var(--ink); border-radius: 50%; }
+  .l-open {
+    border: none; border-radius: 999px;
+    background: var(--ink); color: var(--paper);
+    font-family: inherit; font-size: .9rem; font-weight: 500;
+    padding: .6rem 1.3rem; cursor: pointer;
+    text-decoration: none; display: inline-block;
+    transition: transform .35s var(--ease-spring), box-shadow .35s;
+  }
+  .l-open:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgb(0 0 0 / .35); }
+  .l-open:active { transform: scale(.95); }
+
+  /* hero */
+  .l-hero {
+    display: grid; gap: clamp(2rem, 5vw, 4rem);
+    grid-template-columns: 1fr;
+    align-items: center;
+    padding: clamp(1.5rem, 5vw, 4rem) 0 clamp(2.5rem, 6vw, 4rem);
+  }
+  @media (min-width: 880px) { .l-hero { grid-template-columns: 1.05fr .95fr; } }
+  .l-kicker {
+    font-size: .72rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 1.1rem;
+    animation: rise .8s var(--ease-out) .05s both;
+  }
+  .l-title {
+    font-size: clamp(2.7rem, 7vw, 4.4rem);
+    font-weight: 500; letter-spacing: -.025em; line-height: 1.05;
+    animation: rise .8s var(--ease-out) .12s both;
+  }
+  .l-sub {
+    font-size: clamp(1rem, 2.2vw, 1.12rem); font-weight: 300;
+    color: var(--ink-soft); max-width: 46ch;
+    margin: 1.3rem 0 1.9rem; line-height: 1.7;
+    animation: rise .8s var(--ease-out) .2s both;
+  }
+  .l-cta { display: flex; align-items: center; gap: 1.1rem; animation: rise .8s var(--ease-out) .28s both; }
+  .l-cta .l-open { font-size: 1rem; padding: .85rem 1.9rem; }
+  .l-free { font-size: .78rem; font-weight: 300; color: var(--ink-faint); line-height: 1.45; }
+
+  /* photography */
+  .hero-phone {
+    justify-self: center;
+    animation: heroPhone 1.2s cubic-bezier(.22,1.2,.36,1) .35s both;
+  }
+  .hero-photo {
+    display: block;
+    width: min(330px, 64vw); height: auto;
+    filter: drop-shadow(0 40px 38px rgb(0 0 0 / .3));
+    animation: floaty 8s ease-in-out 1.8s infinite;
+  }
+  @keyframes heroPhone {
+    from { opacity: 0; transform: translateY(56px) scale(.94); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-14px) rotate(-.6deg); }
+  }
+  .night-photo {
+    display: block;
+    width: min(320px, 72vw); height: auto;
+    filter: drop-shadow(0 34px 50px rgb(0 0 0 / .85)) drop-shadow(0 0 44px rgb(255 255 255 / .07));
+  }
+  .desk-photo {
+    display: block;
+    width: 100%; max-width: 860px; height: auto;
+    margin: 0 auto;
+    filter: drop-shadow(0 48px 44px rgb(0 0 0 / .28));
+  }
+
+  /* trust row */
+  .l-trust {
+    display: flex; gap: 1.2rem; flex-wrap: wrap;
+    margin-top: 1.5rem;
+    font-size: .78rem; font-weight: 400; color: var(--ink-soft);
+    animation: rise .8s var(--ease-out) .36s both;
+  }
+  .l-trust span { display: flex; align-items: center; gap: .4rem; }
+  .l-trust span::before { content: "◦"; color: var(--ink-faint); }
+
+  /* install steps */
+  .l-install { padding: 0 0 clamp(2.5rem, 6vw, 4.5rem); text-align: center; }
+  .l-install h2 { font-size: clamp(1.7rem, 4.5vw, 2.5rem); font-weight: 500; letter-spacing: -.02em; margin-bottom: .8rem; }
+  .l-install > .l-wrap > p { font-size: 1rem; font-weight: 300; color: var(--ink-soft); max-width: 50ch; margin: 0 auto 2.6rem; line-height: 1.7; }
+  .install-steps {
+    display: grid; gap: clamp(1.2rem, 3vw, 2.4rem);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
+  }
+  .step { position: relative; }
+  .step img {
+    display: block;
+    width: min(230px, 62vw); height: auto;
+    margin: 0 auto 1.2rem;
+    filter: drop-shadow(0 26px 28px rgb(0 0 0 / .22));
+    transition: transform .5s var(--ease-spring);
+  }
+  .step:hover img { transform: translateY(-8px); }
+  .step-num {
+    display: inline-grid; place-items: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--ink); color: var(--paper);
+    font-size: .8rem; font-weight: 500;
+    margin-bottom: .6rem;
+  }
+  .step h3 { font-size: 1rem; font-weight: 500; margin-bottom: .35rem; }
+  .step p { font-size: .88rem; font-weight: 300; color: var(--ink-soft); line-height: 1.6; max-width: 30ch; margin: 0 auto; }
+
+  /* scroll reveal */
+  .reveal { opacity: 0; transform: translateY(34px); filter: blur(5px);
+    transition: opacity .9s var(--ease-out), transform .9s cubic-bezier(.22,1.2,.36,1), filter .9s var(--ease-out); }
+  .reveal.in { opacity: 1; transform: none; filter: none; }
+  .reveal-d1 { transition-delay: .08s; }
+  .reveal-d2 { transition-delay: .16s; }
+
+  /* pain section */
+  .l-pain { padding: clamp(2.5rem, 7vw, 5rem) 0; text-align: center; }
+  .l-pain h2 {
+    font-size: clamp(1.7rem, 4.6vw, 2.6rem); font-weight: 500; letter-spacing: -.02em;
+    line-height: 1.2; max-width: 24ch; margin: 0 auto 1.2rem;
+  }
+  .l-pain p {
+    font-size: clamp(.98rem, 2vw, 1.08rem); font-weight: 300; color: var(--ink-soft);
+    line-height: 1.75; max-width: 56ch; margin: 0 auto;
+  }
+  .l-pain p strong { color: var(--ink); font-weight: 500; }
+
+  /* features */
+  .l-features {
+    display: grid; gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    padding: 0 0 clamp(2.5rem, 6vw, 4.5rem);
+  }
+  .l-feat {
+    background: var(--card); border-radius: 26px;
+    padding: 1.7rem 1.6rem; box-shadow: var(--shadow);
+    transition: transform .5s var(--ease-spring), box-shadow .5s;
+  }
+  .l-feat:hover { transform: translateY(-6px); box-shadow: 0 22px 44px -18px rgb(0 0 0 / .22); }
+  .l-feat h3 { font-size: 1.05rem; font-weight: 500; margin-bottom: .5rem; }
+  .l-feat p { font-size: .92rem; font-weight: 300; color: var(--ink-soft); line-height: 1.65; }
+  .l-feat .f-mark { margin-bottom: .8rem; display: block; color: var(--ink); }
+  .l-feat-dark { background: var(--ink); }
+  .l-feat-dark h3, .l-feat-dark .f-mark { color: var(--paper); }
+  .l-feat-dark p { color: color-mix(in srgb, var(--paper) 62%, transparent); }
+  .l-feat .f-mark svg { display: block; }
+
+  /* dark band */
+  .l-night { background: #101010; color: #f2f2f2; border-radius: 40px; margin: 0 0 clamp(2.5rem, 6vw, 4.5rem); overflow: hidden; }
+  .l-night-inner {
+    display: grid; gap: clamp(2rem, 5vw, 3.5rem); align-items: center;
+    grid-template-columns: 1fr;
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 4rem);
+  }
+  @media (min-width: 880px) {
+    .l-night-inner { grid-template-columns: 1fr 1.15fr; padding-top: clamp(2rem, 4vw, 3rem); padding-bottom: clamp(2rem, 4vw, 3rem); }
+    .night-photo { width: min(225px, 24vw); }
+  }
+  .l-night h2 { font-size: clamp(1.7rem, 4.5vw, 2.5rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.15; margin-bottom: 1rem; }
+  .l-night p { font-size: 1rem; font-weight: 300; color: #9a9a9a; line-height: 1.75; max-width: 44ch; }
+  .l-night p strong { color: #f2f2f2; font-weight: 500; }
+  .night-phone { justify-self: center; }
+  @media (max-width: 879px) {
+    /* mobile: text first, phone peeks out of the card's bottom edge */
+    .l-night-inner { padding-bottom: 0; gap: 1.6rem; }
+    .night-phone { order: 2; margin-bottom: clamp(-150px, -18vw, -60px); }
+    .night-photo { width: min(230px, 56vw); }
+  }
+
+  /* desktop showcase */
+  .l-desktop { padding: 0 0 clamp(2.5rem, 6vw, 4.5rem); text-align: center; }
+  .l-desktop h2 { font-size: clamp(1.7rem, 4.5vw, 2.5rem); font-weight: 500; letter-spacing: -.02em; margin-bottom: .8rem; }
+  .l-desktop > .l-wrap > p { font-size: 1rem; font-weight: 300; color: var(--ink-soft); max-width: 52ch; margin: 0 auto 2.4rem; line-height: 1.7; }
+  .desk-wrap { position: relative; }
+
+  /* thought drops: pop up, breathe, vanish like a reverse water drop */
+  .l-stream { padding: 0 0 clamp(2.5rem, 6vw, 4rem); overflow: hidden; }
+  .stream-label {
+    text-align: center; font-size: .72rem; font-weight: 500;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: .6rem;
+  }
+  .thought-stage {
+    position: relative;
+    height: 300px;
+    max-width: 900px;
+    margin: 0 auto;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+  }
+  .t-drop {
+    position: absolute;
+    transform-origin: 50% 100%;
+    background: var(--card); border-radius: 18px; box-shadow: var(--shadow);
+    padding: .8rem 1.15rem; font-size: .88rem; font-weight: 300;
+    white-space: nowrap; color: var(--ink);
+    animation: thoughtLife var(--life, 5.2s) cubic-bezier(.3,.7,.4,1) both;
+    will-change: transform, opacity;
+  }
+  .t-drop time { display: block; font-size: .6rem; color: var(--ink-faint); margin-top: .25rem; font-weight: 400; }
+  .t-drop.dark { background: var(--ink); color: var(--paper); }
+  .t-drop.dark time { color: color-mix(in srgb, var(--paper) 45%, transparent); }
+  @keyframes thoughtLife {
+    0%   { opacity: 0; transform: translate(-50%, 30px) scale(.1, .5); }
+    6%   { opacity: 1; transform: translate(-50%, -8px) scale(1.06, .92); }
+    10%  { transform: translate(-50%, 2px) scale(.97, 1.04); }
+    14%  { transform: translate(-50%, 0) scale(1, 1); }
+    76%  { opacity: 1; transform: translate(-50%, -22px) scale(1, 1); }
+    84%  { transform: translate(-50%, -28px) scale(1.15, .78); }
+    92%  { opacity: .9; transform: translate(-50%, -66px) scale(.45, 1.35); }
+    100% { opacity: 0; transform: translate(-50%, -100px) scale(.03, .5); }
+  }
+  @media (max-width: 640px) { .t-drop { font-size: .78rem; padding: .65rem .9rem; } .thought-stage { height: 260px; } }
+
+  /* bottom cta */
+  .l-bottom { text-align: center; padding: 0 0 clamp(3rem, 7vw, 5rem); }
+  .l-bottom h2 { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 500; letter-spacing: -.025em; margin-bottom: .7rem; }
+  .l-bottom p { font-size: 1rem; font-weight: 300; color: var(--ink-soft); margin-bottom: 1.8rem; }
+
+  .l-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--line);
+    padding: 1.4rem 0 2.4rem;
+    font-size: .72rem; font-weight: 300; color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; filter: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="landing">
+<div class="l-wrap">
+
+  <nav class="l-nav">
+    <span class="l-brand"><span class="l-mark"></span> Daily</span>
+    <a class="l-open" href="/app/">Open Daily</a>
+  </nav>
+
+  <section class="l-hero">
+    <div>
+      <p class="l-kicker">For people who build things</p>
+      <h1 class="l-title">One day<br>at a time.</h1>
+      <p class="l-sub">You run a business from nine apps and a browser with forty tabs. Daily is the opposite: one screen for today. The tasks that must happen, the habits you never skip, and every stray thought caught before it disappears into the next call.</p>
+      <div class="l-cta">
+        <a class="l-open" href="/app/">Get started</a>
+        <span class="l-free">free · no card<br>in before your coffee cools</span>
+      </div>
+      <div class="l-trust">
+        <span>private by design</span>
+        <span>light &amp; dark theme</span>
+      </div>
+    </div>
+    <div class="hero-phone">
+      <img class="hero-photo" src="/assets/hero-float.webp"
+           alt="Daily on a floating iPhone: today's tasks, non-negotiables and progress ring"
+           width="800" height="1200">
+    </div>
+  </section>
+
+</div>
+
+  <section class="l-pain">
+    <div class="l-wrap">
+      <h2 class="reveal">You don't need another productivity system.</h2>
+      <p class="reveal reveal-d1">You've tried the heavy ones: boards, backlogs, five priority levels, a graveyard of abandoned setups. The problem was never discipline. The tools asked for more than they gave back. <strong>Daily asks three questions:</strong> what must happen today, what do you never skip, and what did you just think of? That's the whole app. On purpose.</p>
+    </div>
+  </section>
+
+  <div class="l-wrap">
+    <section class="l-features">
+      <div class="l-feat reveal">
+        <span class="f-mark"><svg viewBox="0 0 20 20" width="20" height="20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></span>
+        <h3>Non-negotiables</h3>
+        <p>The few things you do every single day, deal or no deal. They reset each morning and quietly build a streak you won't want to break. Momentum you can see.</p>
+      </div>
+      <div class="l-feat l-feat-dark reveal reveal-d1">
+        <span class="f-mark"><svg viewBox="0 0 20 20" width="20" height="20"><rect x="3.5" y="3.5" width="13" height="13" rx="3" fill="currentColor"/></svg></span>
+        <h3>Done stays visible</h3>
+        <p>Finished tasks don't vanish into an archive. They stay on the board, struck through. At the end of the day you see what you actually did, not just what's left.</p>
+      </div>
+      <div class="l-feat reveal reveal-d2">
+        <span class="f-mark"><svg viewBox="0 0 20 20" width="20" height="20"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="10" y1="2.5" x2="10" y2="17.5"/><line x1="3.5" y1="6.25" x2="16.5" y2="13.75"/><line x1="16.5" y1="6.25" x2="3.5" y2="13.75"/></g></svg></span>
+        <h3>Thoughts, caught</h3>
+        <p>The pitch angle you thought of mid-lunch. The pricing idea in traffic. One tap, captured with its timestamp. Raw material for tomorrow instead of a memory you lost.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="l-wrap">
+    <section class="l-night reveal">
+      <div class="l-night-inner">
+        <div class="night-phone">
+          <img class="night-photo" src="/assets/night-float-r.webp"
+               alt="Daily's dark theme on a floating iPhone"
+               width="700" height="1050" loading="lazy">
+        </div>
+        <div>
+          <h2>Built for the night shift.</h2>
+          <p>Every other app ends your day at midnight, as if you've ever stopped at midnight. In Daily, <strong>the day rolls over at 04:00</strong>. The 1 a.m. push still counts as today, because it was. And yes, there's a dark theme worthy of the hour.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="l-desktop">
+    <div class="l-wrap">
+      <h2 class="reveal">Desk or pocket. Same day.</h2>
+      <p class="reveal reveal-d1">Full two-column command center on the desktop, a native-feeling app on your phone's home screen. It's the same board everywhere, synced live.</p>
+      <div class="desk-wrap reveal reveal-d2">
+        <img class="desk-photo" src="/assets/combo-photo.webp"
+             alt="Daily on a MacBook Pro and iPhone side by side"
+             width="1500" height="840" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section class="l-install">
+    <div class="l-wrap">
+      <h2 class="reveal">On your home screen in ten seconds.</h2>
+      <p class="reveal reveal-d1">No App Store, no download, no update nags. Daily installs straight from Safari and lives with your apps. Full screen, its own icon.</p>
+      <div class="install-steps">
+        <div class="step reveal">
+          <img src="/assets/step-1-safari.webp" alt="Step 1: open getdaily.day in Safari and tap the share button" width="440" height="660" loading="lazy">
+          <span class="step-num">1</span>
+          <h3>Open &amp; share</h3>
+          <p>Visit <strong>getdaily.day</strong> in Safari and tap the share button.</p>
+        </div>
+        <div class="step reveal reveal-d1">
+          <img src="/assets/step-2-sheet.webp" alt="Step 2: choose Add to Home Screen" width="440" height="660" loading="lazy">
+          <span class="step-num">2</span>
+          <h3>Add to Home Screen</h3>
+          <p>Scroll the sheet and tap <strong>Add to Home Screen</strong>.</p>
+        </div>
+        <div class="step reveal reveal-d2">
+          <img src="/assets/step-3-homescreen.webp" alt="Step 3: Daily appears on your home screen like a native app" width="440" height="660" loading="lazy">
+          <span class="step-num">3</span>
+          <h3>That's it</h3>
+          <p>Daily sits next to your apps. Tap the ring, own the day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="l-stream" aria-hidden="true">
+    <p class="stream-label">thoughts, caught in the wild</p>
+    <div class="thought-stage" id="thought-stage"></div>
+  </section>
+
+  <section class="l-bottom">
+    <div class="l-wrap">
+      <h2 class="reveal">Today is enough.</h2>
+      <p class="reveal reveal-d1">Tomorrow gets its own page.</p>
+      <a class="l-open reveal reveal-d2" href="/app/">Get started free</a>
+    </div>
+  </section>
+
+  <div class="l-wrap">
+    <footer class="l-foot">
+      <span>© 2026 Daily</span>
+      <span>one day at a time</span>
+    </footer>
+  </div>
+
+</div>
+
+<script>
+  // scroll reveals
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }, { threshold: 0.15 });
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+  // thought drops: pop up at a random spot, live, vanish like a reverse droplet
+  const THOUGHTS = [
+    ["Charge for the outcome, not the hours.", "09:14"],
+    ["Follow up with the Meridian guy before Friday.", "11:02"],
+    ["Onboarding email should read like a founder wrote it.", "13:40"],
+    ["Raise the price. Watch what happens.", "15:27"],
+    ["Idea: demo video with zero slides.", "17:51"],
+    ["Stop building features nobody asked for.", "21:38"],
+    ["The niche is the strategy.", "23:19"],
+    ["Ship it ugly. Fix it live.", "01:44"],
+    ["What would this look like if it were easy?", "08:05"],
+    ["Answer the 3 emails I keep re-reading.", "12:33"],
+  ];
+  const stage = document.getElementById("thought-stage");
+  let ti = 0, lane = 0;
+  const LANES = [12, 38, 64, 26, 52, 78]; // % across, shuffled feel
+  function spawnThought() {
+    if (document.hidden) return;
+    const [text, time] = THOUGHTS[ti % THOUGHTS.length]; ti++;
+    const el = document.createElement("span");
+    el.className = "t-drop" + (ti % 3 === 1 ? " dark" : "");
+    const life = 4600 + Math.random() * 1600;
+    el.style.setProperty("--life", life + "ms");
+    el.style.top = 90 + Math.random() * 130 + "px";
+    el.innerHTML = `${text.replace(/</g, "&lt;")}<time>${time}</time>`;
+    stage.appendChild(el);
+    // clamp so the card never crops at the stage edges (it's centered via translateX(-50%))
+    const stageW = stage.clientWidth;
+    const half = el.offsetWidth / 2;
+    const wanted = (LANES[lane % LANES.length] / 100) * stageW; lane++;
+    el.style.left = Math.min(Math.max(wanted, half + 10), stageW - half - 10) + "px";
+    setTimeout(() => el.remove(), life + 100);
+  }
+  let thoughtTimer = null;
+  const streamIO = new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && !thoughtTimer) {
+      spawnThought();
+      thoughtTimer = setInterval(spawnThought, 1500);
+    } else if (!e.isIntersecting && thoughtTimer) {
+      clearInterval(thoughtTimer); thoughtTimer = null;
+    }
+  }, { threshold: 0.2 });
+  streamIO.observe(stage);
+</script>
+
+</body>
+</html>

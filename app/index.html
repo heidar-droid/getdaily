@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily</title>
+<meta name="description" content="One day at a time.">
+<meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0e0e" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Daily">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='black' stroke-width='9'/></svg>">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
+<link rel="manifest" href="/app/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- auth -->
+<div id="gate" class="gate" hidden>
+  <div class="gate-inner">
+    <svg class="gate-mark" viewBox="0 0 48 48" aria-hidden="true"><circle class="gate-ring-track" cx="24" cy="24" r="20"/><circle class="gate-ring-fill" cx="24" cy="24" r="20"/></svg>
+    <p class="gate-word">Daily</p>
+    <p class="gate-sub">your day, distilled</p>
+
+    <button id="auth-google" class="auth-google">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.9h5.35c-.5 2.36-2.48 3.7-5.35 3.7a5.7 5.7 0 1 1 0-11.4c1.45 0 2.76.5 3.79 1.48l2.16-2.16A8.9 8.9 0 0 0 12 3.1a8.9 8.9 0 1 0 0 17.8c4.45 0 8.55-3.24 8.55-8.9 0-.3-.07-.6-.2-.9z"/></svg>
+      Continue with Google
+    </button>
+    <p class="auth-divider"><span>or</span></p>
+    <form id="auth-form" class="auth-form">
+      <input id="auth-name" class="ob-input auth-field" type="text" maxlength="60"
+             placeholder="your name" autocomplete="given-name" spellcheck="false" hidden>
+      <input id="auth-email" class="ob-input auth-field" type="email"
+             placeholder="email" autocomplete="email" spellcheck="false" required>
+      <input id="auth-pass" class="ob-input auth-field" type="password" minlength="8"
+             placeholder="password" autocomplete="current-password" required>
+      <input id="auth-code" class="ob-input auth-field" type="text" inputmode="numeric"
+             placeholder="code from your email" autocomplete="one-time-code" spellcheck="false" hidden>
+      <button type="submit" class="ob-next auth-submit" id="auth-submit">Sign in</button>
+    </form>
+    <p id="auth-error" class="gate-error">&nbsp;</p>
+    <button id="auth-mode" class="auth-switch">New here? <strong>Create an account</strong></button>
+  </div>
+</div>
+
+<main id="app" class="app" hidden>
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <div>
+        <p id="greeting" class="greeting"></p>
+        <h1 id="date-title" class="date-title"></h1>
+      </div>
+      <div class="masthead-actions">
+        <span id="save-state" class="save-state" data-state="idle">saved</span>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+          <span class="theme-dot"></span>
+        </button>
+        <button id="profile-btn" class="profile-btn" aria-label="Profile">
+          <span id="avatar" class="avatar"></span>
+        </button>
+      </div>
+    </div>
+
+    <nav id="days" class="days" aria-label="Last 14 days"></nav>
+  </header>
+
+  <section class="panel" id="panel">
+
+    <div class="col col-a">
+
+    <div class="card card-hero" style="--i:0">
+      <div id="ring" class="ring" aria-hidden="true"></div>
+      <div class="hero-figures">
+        <p id="pct" class="pct">0<span class="pct-sign">%</span></p>
+        <p id="pct-sub" class="pct-sub">of today complete</p>
+      </div>
+    </div>
+
+    <div class="card" id="card-rituals" style="--i:1">
+      <div class="card-head">
+        <h2 class="label">Non&#8209;negotiables</h2>
+        <button id="ritual-add-btn" class="round-btn" aria-label="Add non-negotiable">+</button>
+      </div>
+      <ul id="rituals" class="rituals"></ul>
+      <form id="ritual-form" class="inline-form" hidden>
+        <input id="ritual-input" type="text" maxlength="120" placeholder="a daily commitment…" autocomplete="off" spellcheck="false">
+      </form>
+    </div>
+
+    </div>
+
+    <div class="col col-b">
+
+    <div class="card card-ink" style="--i:2">
+      <div class="card-head">
+        <h2 class="label">Today</h2>
+        <span id="task-count" class="count"></span>
+      </div>
+      <ul id="tasks" class="tasks"></ul>
+      <p id="tasks-empty" class="empty" hidden>A clear day.</p>
+      <form id="task-form" class="task-add">
+        <span class="task-add-mark">+</span>
+        <input id="task-input" type="text" maxlength="500" placeholder="add a task…" autocomplete="off" spellcheck="false">
+      </form>
+    </div>
+
+    <div class="card" id="card-notes" style="--i:3">
+      <div class="card-head">
+        <h2 class="label">Notes</h2>
+        <span id="note-count" class="count"></span>
+      </div>
+      <ul id="notes" class="notes"></ul>
+      <p id="notes-empty" class="empty-soft" hidden>Thoughts, sparks, lines worth keeping.</p>
+      <form id="note-form" class="note-add">
+        <textarea id="note-input" class="note-input" rows="1" maxlength="10000"
+          placeholder="capture a thought…" spellcheck="false"></textarea>
+        <button type="submit" class="note-send" aria-label="Save note">&uarr;</button>
+      </form>
+    </div>
+
+    </div>
+
+  </section>
+
+  <footer class="foot">
+    <span class="foot-hint"><kbd>t</kbd> task &nbsp; <kbd>n</kbd> note &nbsp; <kbd>[</kbd> <kbd>]</kbd> days &nbsp; <kbd>d</kbd> theme</span>
+    <span class="foot-rule">day rolls at 04:00</span>
+  </footer>
+
+</main>
+
+<!-- profile settings -->
+<div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+<aside id="profile-sheet" class="sheet" hidden aria-label="Profile settings">
+  <div class="sheet-handle"></div>
+  <div class="sheet-avatar-wrap">
+    <button id="avatar-edit" class="sheet-avatar" aria-label="Change photo">
+      <span id="avatar-big" class="avatar avatar-big"></span>
+      <span class="avatar-edit-hint">edit</span>
+    </button>
+    <input id="avatar-file" type="file" accept="image/*" hidden>
+  </div>
+  <label class="sheet-label" for="profile-name">Name</label>
+  <input id="profile-name" class="sheet-input" type="text" maxlength="60" autocomplete="given-name" spellcheck="false">
+  <div class="sheet-row">
+    <span class="sheet-row-label">Appearance</span>
+    <button id="sheet-theme" class="sheet-chip">toggle</button>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-row-label">Day rolls over</span>
+    <span class="sheet-row-value">04:00</span>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-row-label">Signed in as</span>
+    <span id="sheet-email" class="sheet-row-value sheet-email"></span>
+  </div>
+  <button id="sign-out" class="sheet-signout">Sign out</button>
+</aside>
+
+<!-- avatar cropper -->
+<div id="cropper" class="cropper" hidden>
+  <div class="crop-card">
+    <p class="crop-title">Position your photo</p>
+    <div id="crop-viewport" class="crop-viewport">
+      <img id="crop-img" alt="" draggable="false">
+      <div class="crop-mask" aria-hidden="true"></div>
+    </div>
+    <input id="crop-zoom" class="crop-zoom" type="range" min="0" max="100" value="0" aria-label="Zoom">
+    <div class="crop-actions">
+      <button id="crop-cancel" class="crop-btn crop-cancel">Cancel</button>
+      <button id="crop-save" class="crop-btn crop-confirm">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- coach-mark tour -->
+<div id="tour" class="tour" hidden>
+  <div id="tour-spot" class="tour-spot"></div>
+  <div id="tour-tip" class="tour-tip">
+    <p id="tour-text" class="tour-text"></p>
+    <div class="tour-actions">
+      <button id="tour-skip" class="tour-skip">Skip</button>
+      <span id="tour-dots" class="tour-dots"></span>
+      <button id="tour-next" class="tour-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/app/app.js"></script>
+</body>
+</html>
