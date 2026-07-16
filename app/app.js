@@ -1,7 +1,7 @@
 /* Daily — client (public, multi-user). Clerk auth + Supabase Postgres w/ RLS. */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Clerk } from "https://esm.sh/@clerk/clerk-js@5";
-import { renderShareCard, shareOrDownload } from "/app/share-card.js";
+import { renderShareCard, shareOrDownload, downloadCard } from "/app/share-card.js";
 
 const CLERK_PK = "pk_live_Y2xlcmsuZ2V0ZGFpbHkuZGF5JA";
 const clerk = new Clerk(CLERK_PK);
@@ -802,7 +802,8 @@ let shareTheme = "dark";
 
 function shareData() {
   const streaks = state.rituals
-    .map((r) => ({ label: r.label, streak: streakOf(r.id, viewDate) }))
+    // a streak still counts if it's alive through yesterday, even before today's check
+    .map((r) => ({ label: r.label, streak: streakOf(r.id, viewDate) || streakOf(r.id, shiftDate(viewDate, -1)) }))
     .filter((s) => s.streak > 0)
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 3);
@@ -846,6 +847,12 @@ function flipShareTheme(t) {
 $("#share-btn").addEventListener("click", openShareSheet);
 $("#share-theme-dark").addEventListener("click", () => flipShareTheme("dark"));
 $("#share-theme-light").addEventListener("click", () => flipShareTheme("light"));
+$("#share-save").addEventListener("click", async () => {
+  const b = $("#share-save");
+  await downloadCard(shareCanvas);
+  b.textContent = "saved ✓";
+  setTimeout(() => { b.textContent = "save"; }, 1600);
+});
 $("#share-go").addEventListener("click", async () => {
   const go = $("#share-go");
   const result = await shareOrDownload(shareCanvas);

@@ -112,6 +112,16 @@ export function canNativeShare() {
   return !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] }));
 }
 
+export async function downloadCard(canvas) {
+  const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "daily-streak.png";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return "downloaded";
+}
+
 export async function shareOrDownload(canvas) {
   const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
   const file = new File([blob], "daily-streak.png", { type: "image/png" });
@@ -123,10 +133,5 @@ export async function shareOrDownload(canvas) {
       if (e.name === "AbortError") return "cancelled";
     }
   }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "daily-streak.png";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  return "downloaded";
+  return downloadCard(canvas);
 }

@@ -1327,3 +1327,19 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   #share-canvas, .share-title, .share-controls, .milestone-toast { animation: none; }
 }
+
+.share-actions { display: flex; align-items: center; gap: .55rem; }
+.share-save {
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: transparent; color: var(--ink-soft);
+  font-family: inherit; font-size: .85rem; font-weight: 500;
+  padding: .68rem 1.15rem; cursor: pointer;
+  transition: color .3s, border-color .3s, transform .35s var(--ease-spring);
+}
+.share-save:hover { color: var(--ink); border-color: var(--ink); transform: translateY(-2px); }
+.share-save:active { transform: scale(.94); }
+.share-hint {
+  text-align: center; font-size: .68rem; font-weight: 300;
+  color: var(--ink-faint); margin-top: .9rem;
+  animation: rise .5s var(--ease-out) .3s both;
+}
