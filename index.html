@@ -106,6 +106,8 @@
   }
   .l-trust span { display: flex; align-items: center; gap: .4rem; }
   .l-trust span::before { content: "◦"; color: var(--ink-faint); }
+  .l-trust-gh { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--ink-faint); }
+  .l-trust-gh:hover { text-decoration-color: var(--ink); }
 
   /* install steps */
   .l-install { padding: 0 0 clamp(2.5rem, 6vw, 4.5rem); text-align: center; }
@@ -286,6 +288,7 @@
       <div class="l-trust">
         <span>private by design</span>
         <span>light &amp; dark theme</span>
+        <span><a class="l-trust-gh" href="https://github.com/heidar-droid/getdaily" target="_blank" rel="noopener">open source</a></span>
       </div>
     </div>
     <div class="hero-phone">
@@ -387,7 +390,7 @@
   <section class="l-bottom">
     <div class="l-wrap">
       <h2 class="reveal">Today is enough.</h2>
-      <p class="reveal reveal-d1">Tomorrow gets its own page.</p>
+      <p class="reveal reveal-d1">Tomorrow gets its own page. Free, open source, and yours: the whole thing is <a class="l-trust-gh" href="https://github.com/heidar-droid/getdaily" target="_blank" rel="noopener">on GitHub</a>.</p>
       <a class="l-open reveal reveal-d2" href="/app/">Get started free</a>
     </div>
   </section>
