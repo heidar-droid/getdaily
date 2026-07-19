@@ -777,12 +777,20 @@ async function start() {
   if (!clerk.user) { showGate(); return; }
   sessionUserId = clerk.user.id;
   userEmail = clerk.user.primaryEmailAddress?.emailAddress || "";
-  let { data: p } = await sb.from("profiles").select().eq("id", sessionUserId).maybeSingle();
+  let p = must(await sb.from("profiles").select().eq("id", sessionUserId).maybeSingle());
   if (!p) {
     const name = pendingSignupName || clerk.user.firstName ||
       (userEmail ? userEmail.split("@")[0] : "there");
     const ins = await sb.from("profiles").insert({ id: sessionUserId, name }).select().maybeSingle();
-    p = ins.data || { id: sessionUserId, name, avatar: null, onboarded: false };
+    if (ins.error) {
+      // The user.created webhook may have created the row first (race) — re-read the
+      // authoritative row. Never fall through to an unpersisted in-memory profile:
+      // that was the ghost-account bug (Clerk user, no profiles row, no seeded ritual).
+      p = must(await sb.from("profiles").select().eq("id", sessionUserId).maybeSingle());
+      if (!p) throw ins.error;
+    } else {
+      p = ins.data;
+    }
   }
   profile = p;
   renderAvatar();
