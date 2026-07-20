@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/c/:code", "destination": "/c.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
+  ]
+}
