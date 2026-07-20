@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Daily</title>
-<meta name="description" content="The five-second command center for entrepreneurs: today's tasks, the habits you never skip, and every stray thought caught before it's gone.">
+<meta name="description" content="One screen for today: tasks, the habits you never skip, and stray thoughts caught before they're gone. Now with photographic proof, crews that keep you honest, and reminders that know your timezone.">
 <meta property="og:title" content="Daily, one day at a time">
-<meta property="og:description" content="A deliberately small app for founders whose days run them. Tasks, non-negotiables, thoughts. Nothing else.">
+<meta property="og:description" content="A deliberately small app for people who build things. Tasks, non-negotiables, thoughts. And now: proof, or it didn't happen.">
 <meta property="og:image" content="https://getdaily.day/assets/launch-card-og.jpg">
 <meta name="theme-color" content="#f5f5f5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='black' stroke-width='9'/></svg>">
@@ -327,6 +327,325 @@
   }
   @media (max-width: 640px) { .t-drop { font-size: .78rem; padding: .65rem .9rem; } .thought-stage { height: 260px; } }
 
+  /* ============ Daily, together — 2026-07-20 release ============ */
+  .l-newhead { text-align: center; padding: 0 0 clamp(2rem, 5vw, 3.4rem); }
+  .new-pill {
+    display: inline-block; background: var(--ink); color: var(--paper);
+    border-radius: 999px; font-size: .64rem; font-weight: 500;
+    letter-spacing: .2em; text-transform: uppercase;
+    padding: .45rem 1rem; margin-bottom: 1.15rem;
+  }
+  .l-newhead h2 { font-size: clamp(2rem, 5.6vw, 3.1rem); font-weight: 500; letter-spacing: -.025em; }
+  .l-newhead p { font-size: clamp(.98rem, 2vw, 1.08rem); font-weight: 300; color: var(--ink-soft); max-width: 54ch; margin: 1.1rem auto 0; line-height: 1.75; }
+
+  .l-split {
+    display: grid; gap: clamp(2.2rem, 5vw, 4.5rem); align-items: center;
+    padding: 0 0 clamp(3rem, 7vw, 5.5rem);
+  }
+  @media (min-width: 880px) {
+    .l-split { grid-template-columns: 1fr 1fr; }
+    .l-split.flip .split-visual { order: -1; }
+  }
+  .split-kicker { font-size: .68rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: .9rem; }
+  .split-copy h2 { font-size: clamp(1.7rem, 4.4vw, 2.5rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.15; margin-bottom: 1rem; }
+  .split-copy p { font-size: clamp(.95rem, 2vw, 1.04rem); font-weight: 300; color: var(--ink-soft); line-height: 1.75; max-width: 46ch; }
+  .split-copy p + p { margin-top: .9rem; }
+  .split-copy p strong { color: var(--ink); font-weight: 500; }
+
+  /* --- proofs: CSS iPhone running the real check → camera → proof flow --- */
+  .pp-wrap { justify-self: center; position: relative; }
+  .pp-phone {
+    width: min(316px, 78vw);
+    background: #0c0c0c; border-radius: 54px; padding: 11px;
+    box-shadow: 0 44px 80px -32px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .12);
+  }
+  .pp-screen {
+    position: relative; overflow: hidden;
+    border-radius: 44px; background: var(--paper);
+    aspect-ratio: 9 / 19.2;
+    font-size: .82rem;
+  }
+  .pp-island {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 86px; height: 25px; border-radius: 999px; background: #0c0c0c; z-index: 9;
+  }
+  .pp-status {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 26px 0; font-size: .74rem; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-status svg { display: block; }
+  .pp-head { padding: 1.15rem 1.15rem .6rem; }
+  .pp-date { font-size: .56rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); }
+  .pp-title { font-size: 1.5rem; font-weight: 500; letter-spacing: -.02em; margin-top: .15rem; }
+  .pp-card {
+    background: var(--card); border-radius: 22px; margin: 0 .8rem;
+    padding: .35rem .9rem; box-shadow: var(--shadow);
+  }
+  .pp-row { display: flex; align-items: center; gap: .6rem; padding: .72rem 0; position: relative; }
+  .pp-row + .pp-row { border-top: 1px solid var(--line); }
+  .pp-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--ink-faint); flex: 0 0 auto; position: relative;
+  }
+  .pp-check .fill {
+    position: absolute; inset: -2px; border-radius: 50%; background: var(--ink);
+  }
+  .pp-check .fill::after {
+    content: ""; position: absolute; left: 7px; top: 4px; width: 4px; height: 8px;
+    border: solid var(--paper); border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+  .pp-row.done .pp-label { color: var(--ink-faint); text-decoration: line-through; }
+  .pp-label { font-size: .84rem; font-weight: 400; flex: 1; min-width: 0; }
+  .pp-sub { display: block; font-size: .6rem; font-weight: 300; color: var(--ink-soft); margin-top: .1rem; }
+  .pp-glyph { color: var(--ink-soft); opacity: .55; flex: 0 0 auto; }
+  .pp-thumb {
+    position: absolute; right: 0; top: 50%;
+    width: 40px; height: 40px; border-radius: 12px; object-fit: cover;
+    box-shadow: 0 6px 14px rgb(0 0 0 / .18);
+  }
+  .pp-hero-row .pp-label { font-weight: 500; }
+  .pp-sec {
+    font-size: .56rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-soft); padding: 1rem 1.15rem .45rem;
+  }
+  .pp-streak {
+    background: var(--ink); color: var(--paper); border-radius: 999px;
+    font-size: .6rem; font-weight: 500; padding: .16rem .5rem; flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-streak.dim { background: var(--paper); color: var(--ink-soft); }
+  /* the choreography — one shared 12s clock */
+  .pp-tap {
+    position: absolute; left: 1.3rem; top: 50%; width: 34px; height: 34px;
+    margin: -17px 0 0 -7px; border-radius: 50%;
+    background: rgb(0 0 0 / .18);
+    opacity: 0; animation: ppTapK 12s var(--ease-out) infinite;
+  }
+  @keyframes ppTapK {
+    0%, 5% { opacity: 0; transform: scale(.3); }
+    8% { opacity: .8; transform: scale(1); }
+    12%, 100% { opacity: 0; transform: scale(1.7); }
+  }
+  .pp-cam {
+    position: absolute; inset: 0; z-index: 5; background: #000;
+    transform: translateY(103%);
+    animation: ppCamK 12s cubic-bezier(.22,1.2,.36,1) infinite;
+    overflow: hidden; border-radius: 30px 30px 44px 44px;
+  }
+  @keyframes ppCamK {
+    0%, 11% { transform: translateY(103%); }
+    17% { transform: translateY(0); }
+    39% { transform: translateY(0); }
+    45%, 100% { transform: translateY(103%); }
+  }
+  .pp-feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pp-chip {
+    position: absolute; top: 7.5%; left: 50%; transform: translateX(-50%);
+    background: rgb(0 0 0 / .55); color: #fff;
+    border-radius: 999px; padding: .38rem .85rem;
+    font-size: .68rem; white-space: nowrap; backdrop-filter: blur(4px);
+  }
+  .pp-vis {
+    position: absolute; bottom: 15.5%; left: 50%; transform: translateX(-50%);
+    display: flex; gap: .3rem; font-size: .66rem;
+  }
+  .pp-vis span { border-radius: 999px; padding: .3rem .75rem; background: rgb(0 0 0 / .45); color: rgb(255 255 255 / .8); white-space: nowrap; }
+  .pp-vis span.on { background: rgb(255 255 255 / .94); color: #111; font-weight: 500; }
+  .pp-shutter {
+    position: absolute; bottom: 3.6%; left: 50%;
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 4px solid #fff; margin-left: -26px;
+    animation: ppShutK 12s var(--ease-spring) infinite;
+  }
+  .pp-shutter::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #fff; }
+  @keyframes ppShutK {
+    0%, 30% { transform: scale(1); }
+    33% { transform: scale(.76); }
+    36%, 100% { transform: scale(1); }
+  }
+  .pp-flash { position: absolute; inset: 0; z-index: 6; background: #fff; opacity: 0; animation: ppFlashK 12s linear infinite; pointer-events: none; }
+  @keyframes ppFlashK { 0%, 33% { opacity: 0; } 35.5% { opacity: .95; } 40%, 100% { opacity: 0; } }
+  .pp-anim-thumb { opacity: 0; transform: translateY(-50%) scale(.3) rotate(-10deg); animation: ppThumbK 12s var(--ease-spring) infinite; }
+  @keyframes ppThumbK {
+    0%, 46% { opacity: 0; transform: translateY(-50%) scale(.3) rotate(-10deg); }
+    51% { opacity: 1; transform: translateY(-50%) scale(1.08) rotate(2deg); }
+    54% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
+    90% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
+    96%, 100% { opacity: 0; transform: translateY(-50%) scale(1) rotate(0deg); }
+  }
+  .pp-anim-fill { transform: scale(0); animation: ppCheckK 12s var(--ease-spring) infinite; }
+  @keyframes ppCheckK {
+    0%, 48% { transform: scale(0); }
+    53% { transform: scale(1.15); }
+    56%, 90% { transform: scale(1); }
+    96%, 100% { transform: scale(0); }
+  }
+  .pp-anim-sub { opacity: 0; animation: ppSubK 12s var(--ease-out) infinite; }
+  @keyframes ppSubK { 0%, 50% { opacity: 0; } 56%, 90% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  .pp-anim-glyph { animation: ppGlyphK 12s linear infinite; }
+  @keyframes ppGlyphK { 0%, 46% { opacity: .55; } 50%, 90% { opacity: 0; } 96%, 100% { opacity: .55; } }
+  .pp-toast {
+    position: absolute; left: 50%; bottom: 5.5%; transform: translateX(-50%) translateY(160%);
+    background: var(--ink); color: var(--paper);
+    border-radius: 999px; padding: .5rem 1.1rem;
+    font-size: .7rem; font-weight: 400; white-space: nowrap;
+    box-shadow: 0 12px 26px -8px rgb(0 0 0 / .4);
+    opacity: 0; animation: ppToastK 12s var(--ease-spring) infinite; z-index: 4;
+  }
+  @keyframes ppToastK {
+    0%, 55% { opacity: 0; transform: translateX(-50%) translateY(160%); }
+    60% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    86%, 100% { opacity: 0; transform: translateX(-50%) translateY(60%); }
+  }
+
+  /* --- crews: the room --- */
+  .room-stage { justify-self: center; width: min(410px, 90vw); }
+  .room-card { background: var(--card); border-radius: 28px; box-shadow: var(--shadow); padding: 1.2rem 1.25rem 1rem; }
+  .room-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .4rem; }
+  .room-head .rh-label { font-size: .68rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+  .room-head .rh-crew { font-size: .74rem; font-weight: 300; color: var(--ink-faint); }
+  .room-row { display: flex; align-items: center; gap: .8rem; padding: .8rem 0; }
+  .room-row + .room-row { border-top: 1px solid var(--line); }
+  .room-av { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+  .room-av-you {
+    width: 40px; height: 40px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--ink); color: var(--paper);
+    display: grid; place-items: center; font-size: .9rem; font-weight: 500;
+  }
+  .room-who { flex: 1; min-width: 0; }
+  .room-who .rw-name { font-size: .92rem; font-weight: 500; }
+  .room-who .rw-sub { font-size: .72rem; font-weight: 300; color: var(--ink-soft); margin-top: .1rem; }
+  .room-thumb { width: 58px; height: 58px; border-radius: 16px; object-fit: cover; flex: 0 0 auto; }
+  .rx-chip {
+    align-self: flex-end; margin-left: -1.1rem; margin-bottom: -.2rem; z-index: 1;
+    background: var(--card); border-radius: 999px; padding: .18rem .5rem;
+    font-size: .72rem; box-shadow: 0 4px 12px rgb(0 0 0 / .14);
+    animation: rxBobK 5.5s ease-in-out infinite;
+  }
+  .rx-chip:nth-of-type(2) { animation-delay: 1.2s; }
+  @keyframes rxBobK { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  /* the "you" row cycles: empty slot → proof pops in */
+  .room-you-visual { position: relative; width: 58px; height: 58px; flex: 0 0 auto; }
+  .room-slot {
+    position: absolute; inset: 0; border-radius: 16px;
+    border: 2px dashed var(--ink-faint);
+    animation: youSlotK 11s linear infinite;
+  }
+  .room-you-thumb { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 16px; object-fit: cover; opacity: 0; animation: youThumbK 11s var(--ease-spring) infinite; }
+  @keyframes youSlotK { 0%, 42% { opacity: 1; } 46%, 92% { opacity: 0; } 97%, 100% { opacity: 1; } }
+  @keyframes youThumbK {
+    0%, 42% { opacity: 0; transform: scale(.4); }
+    48% { opacity: 1; transform: scale(1.08); }
+    51%, 92% { opacity: 1; transform: scale(1); }
+    96%, 100% { opacity: 0; transform: scale(1); }
+  }
+  .room-you-sub { position: relative; height: 1.05em; overflow: visible; }
+  .room-you-sub span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+  .room-you-sub .s-wait { animation: youSlotK 11s linear infinite; }
+  .room-you-sub .s-done { opacity: 0; animation: youThumbK 11s linear infinite; }
+  .invite-pill {
+    display: flex; align-items: center; justify-content: center; gap: .6rem;
+    width: max-content; max-width: 100%; margin: 1.1rem auto 0;
+    background: var(--ink); color: var(--paper);
+    border-radius: 999px; padding: .72rem 1.35rem;
+    font-size: .84rem; font-weight: 400; font-variant-numeric: tabular-nums;
+    box-shadow: 0 14px 30px -12px rgb(0 0 0 / .4);
+  }
+  .invite-pill svg { flex: 0 0 auto; opacity: .7; }
+  .invite-caption { text-align: center; font-size: .74rem; font-weight: 300; color: var(--ink-faint); margin-top: .8rem; }
+
+  /* --- duo: gallery + reminders --- */
+  .l-duo { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr)); padding: 0 0 clamp(3rem, 7vw, 5.5rem); }
+  .duo-card { background: var(--card); border-radius: 28px; padding: 1.7rem 1.6rem; box-shadow: var(--shadow); }
+  .duo-card h3 { font-size: 1.15rem; font-weight: 500; margin-bottom: .5rem; }
+  .duo-card > p { font-size: .92rem; font-weight: 300; color: var(--ink-soft); line-height: 1.65; margin-bottom: 1.3rem; max-width: 44ch; }
+  .pg-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .pg-chips span { border-radius: 999px; padding: .32rem .85rem; font-size: .72rem; font-weight: 400; background: var(--paper); color: var(--ink-soft); }
+  .pg-chips span.on { background: var(--ink); color: var(--paper); font-weight: 500; }
+  .pg-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; }
+  .pg-cell { aspect-ratio: 1; border-radius: 9px; background: var(--paper); position: relative; overflow: hidden; }
+  .pg-cell .dn {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: .64rem; font-weight: 400; color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .pg-cell.today { box-shadow: inset 0 0 0 2px var(--ink); }
+  .pg-cell.today .dn { color: var(--ink); font-weight: 500; }
+  .pg-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .45s var(--ease-spring); }
+  .pg-cell.ph:hover img { transform: scale(1.12); }
+  .pg-cell.ph { opacity: 0; transform: scale(.4); }
+  .reveal.in .pg-cell.ph { animation: cellPopK .55s var(--ease-spring) both; animation-delay: calc(var(--i) * 80ms); }
+  @keyframes cellPopK { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .notif-stack { display: grid; gap: .65rem; }
+  .notif {
+    display: flex; align-items: flex-start; gap: .65rem;
+    background: var(--paper); border-radius: 18px; padding: .8rem .9rem;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    opacity: 0;
+    animation: notifK 12s var(--ease-spring) infinite;
+    animation-delay: var(--nd, 0s);
+  }
+  @keyframes notifK {
+    0% { opacity: 0; transform: translateY(-12px) scale(.96); }
+    5%, 84% { opacity: 1; transform: none; }
+    92%, 100% { opacity: 0; transform: none; }
+  }
+  .notif-ic { width: 32px; height: 32px; border-radius: 8px; background: var(--ink); flex: 0 0 auto; display: grid; place-items: center; }
+  .notif-ic span { width: 14px; height: 14px; border: 2.5px solid var(--paper); border-radius: 50%; }
+  .notif-tx { flex: 1; min-width: 0; }
+  .notif-tx b { display: block; font-size: .8rem; font-weight: 600; line-height: 1.3; }
+  .notif-tx p { font-size: .76rem; color: var(--ink-soft); line-height: 1.35; margin-top: .1rem; }
+  .notif time { font-size: .64rem; color: var(--ink-faint); flex: 0 0 auto; margin-top: .1rem; }
+
+  /* hero satellites: proof polaroid + crew */
+  .hs-proof {
+    left: 68%; top: 74%;
+    --fx: -110px; --fy: -60px; --pd: 2.45s; --rot: 3.5deg; --rsw: -1.5deg; --bd: 8.4s; --bdel: 3.6s;
+  }
+  .hs-proof .hs-in { padding: .45rem; width: 118px; box-sizing: border-box; }
+  .hs-proof img { display: block; width: 100%; height: 96px; object-fit: cover; border-radius: 13px; }
+  .hs-proof .hs-cap { display: flex; justify-content: space-between; font-size: .58rem; color: var(--ink-soft); margin-top: .35rem; padding: 0 .12rem .05rem; }
+  .hs-crew {
+    right: 76%; top: 41%;
+    --fx: 120px; --fy: 10px; --pd: 2.25s; --rot: -3.2deg; --rsw: 1.1deg; --bd: 9.4s; --bdel: 3.8s;
+  }
+  .hs-crew .hs-in { display: flex; align-items: center; gap: .55rem; padding: .6rem .95rem .6rem .7rem; }
+  .hs-avs { display: flex; }
+  .hs-avs img {
+    width: 27px; height: 27px; border-radius: 50%; object-fit: cover;
+    border: 2px solid #fff; display: block;
+  }
+  .hs-avs img + img { margin-left: -9px; }
+  .hs-crew-tx b { display: block; font-size: .72rem; font-weight: 500; line-height: 1.2; white-space: nowrap; }
+  .hs-crew-tx span { font-size: .58rem; font-weight: 300; color: var(--ink-soft); white-space: nowrap; }
+  @media (max-width: 879px) {
+    .hs-note { display: none; }
+    .hs-proof { left: 64%; top: 66%; }
+    .hs-proof .hs-in { width: 96px; }
+    .hs-proof img { height: 78px; }
+    .hs-crew { right: 64%; top: 66%; }
+    .hs-crew .hs-in { padding: .5rem .8rem .5rem .6rem; }
+    .hs-avs img { width: 23px; height: 23px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-tap, .pp-cam, .pp-flash, .pp-shutter, .pp-anim-thumb, .pp-anim-fill,
+    .pp-anim-sub, .pp-anim-glyph, .pp-toast, .rx-chip, .room-slot,
+    .room-you-thumb, .room-you-sub span, .notif { animation: none; }
+    .pp-anim-thumb { opacity: 1; transform: translateY(-50%); }
+    .pp-anim-fill { transform: scale(1); }
+    .pp-anim-sub, .notif { opacity: 1; }
+    .pp-anim-glyph { opacity: 0; }
+    .pp-cam { transform: translateY(103%); }
+    .pp-toast { opacity: 0; }
+    .room-you-thumb { opacity: 1; }
+    .room-slot, .room-you-sub .s-wait { opacity: 0; }
+    .room-you-sub .s-done { opacity: 1; }
+    .pg-cell.ph { opacity: 1; transform: none; }
+  }
+
   /* bottom cta */
   .l-bottom { text-align: center; padding: 0 0 clamp(3rem, 7vw, 5rem); }
   .l-bottom h2 { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 500; letter-spacing: -.025em; margin-bottom: .7rem; }
@@ -402,7 +721,22 @@
         </div>
       </div>
       <div class="hs hs-oss" aria-hidden="true"><div class="hs-in">open source</div></div>
-      <div class="hs hs-free" aria-hidden="true"><div class="hs-in">free forever</div></div>
+      <div class="hs hs-crew" aria-hidden="true">
+        <div class="hs-in">
+          <span class="hs-avs">
+            <img src="/assets/face-sam.jpg" alt="">
+            <img src="/assets/face-mira.jpg" alt="">
+            <img src="/assets/face-jules.jpg" alt="">
+          </span>
+          <span class="hs-crew-tx"><b>morning crew</b><span>all 3 in today</span></span>
+        </div>
+      </div>
+      <div class="hs hs-proof" aria-hidden="true">
+        <div class="hs-in">
+          <img src="/assets/proof-gym-sq.jpg" alt="">
+          <div class="hs-cap"><span>gym session</span><span>18:42</span></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -431,6 +765,186 @@
         <span class="f-mark"><svg viewBox="0 0 20 20" width="20" height="20"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="10" y1="2.5" x2="10" y2="17.5"/><line x1="3.5" y1="6.25" x2="16.5" y2="13.75"/><line x1="16.5" y1="6.25" x2="3.5" y2="13.75"/></g></svg></span>
         <h3>Thoughts, caught</h3>
         <p>The pitch angle you thought of mid-lunch. The pricing idea in traffic. One tap, captured with its timestamp. Raw material for tomorrow instead of a memory you lost.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="l-newhead">
+    <div class="l-wrap">
+      <span class="new-pill reveal">just shipped</span>
+      <h2 class="reveal reveal-d1">Daily, together.</h2>
+      <p class="reveal reveal-d2">Daily used to be just you versus your own day. As of this week, it has witnesses: a camera that wants receipts, crews that see you show up, and reminders that know exactly when you're about to fold.</p>
+    </div>
+  </section>
+
+  <div class="l-wrap">
+    <section class="l-split reveal" id="proofs">
+      <div class="split-copy">
+        <p class="split-kicker">proofs</p>
+        <h2>Proof, or it didn't happen.</h2>
+        <p>Check something off and the camera opens. One shot, straight from the lens, pinned to that exact task forever. No camera roll uploads, no filters, no checking off the gym from your couch.</p>
+        <p>Before it saves, one question: <strong>the room, or just you.</strong> Some wins are for your crew. Some are nobody's business.</p>
+      </div>
+      <div class="split-visual pp-wrap">
+        <div class="pp-phone" aria-hidden="true">
+          <div class="pp-screen">
+            <div class="pp-island"></div>
+            <div class="pp-status">
+              <span>9:41</span>
+              <svg width="46" height="12" viewBox="0 0 46 12" fill="currentColor"><rect x="0" y="7" width="2.6" height="4" rx="1"/><rect x="4" y="5" width="2.6" height="6" rx="1"/><rect x="8" y="3" width="2.6" height="8" rx="1"/><rect x="12" y="1" width="2.6" height="10" rx="1"/><path d="M24.5 4.8a6.5 6.5 0 0 1 8 0l-1.3 1.6a4.4 4.4 0 0 0-5.4 0Zm2 2.5a3.4 3.4 0 0 1 4 0L28.5 9.5Z"/><rect x="37" y="2.5" width="8" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="38.4" y="3.9" width="4" height="4.2" rx="1"/><rect x="45.6" y="4.6" width="1.2" height="2.8" rx=".6"/></svg>
+            </div>
+            <div class="pp-head">
+              <div class="pp-date">Sunday &middot; Jul 20</div>
+              <div class="pp-title">Today</div>
+            </div>
+            <div class="pp-card">
+              <div class="pp-row done">
+                <span class="pp-check"><span class="fill"></span></span>
+                <span class="pp-label">ship the proposal</span>
+              </div>
+              <div class="pp-row pp-hero-row">
+                <span class="pp-check"><span class="fill pp-anim-fill"></span></span>
+                <span class="pp-label">gym session
+                  <span class="pp-sub pp-anim-sub">proof &middot; room &middot; 18:42</span>
+                </span>
+                <svg class="pp-glyph pp-anim-glyph" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.8h2.6L7.2 5h5.6l1.6 1.8H17a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.8a1 1 0 0 1 1-1Z"/><circle cx="10" cy="11" r="2.7"/></svg>
+                <img class="pp-thumb pp-anim-thumb" src="/assets/proof-gym-sq.jpg" alt="" loading="lazy">
+                <span class="pp-tap"></span>
+              </div>
+              <div class="pp-row">
+                <span class="pp-check"></span>
+                <span class="pp-label">call with Meridian</span>
+              </div>
+            </div>
+            <div class="pp-sec">Non-negotiables</div>
+            <div class="pp-card">
+              <div class="pp-row done">
+                <span class="pp-check"><span class="fill"></span></span>
+                <span class="pp-label">up by 7:00</span>
+                <span class="pp-streak">&times;12</span>
+              </div>
+              <div class="pp-row">
+                <span class="pp-check"></span>
+                <span class="pp-label">no sugar</span>
+                <span class="pp-streak dim">&times;4</span>
+              </div>
+            </div>
+            <div class="pp-toast">saved to your gallery</div>
+            <div class="pp-cam">
+              <img class="pp-feed" src="/assets/proof-gym.jpg" alt="" loading="lazy">
+              <div class="pp-chip">proof for: gym session</div>
+              <div class="pp-vis"><span class="on">room</span><span>just me</span></div>
+              <div class="pp-shutter"></div>
+            </div>
+            <div class="pp-flash"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="l-split flip reveal" id="crews">
+      <div class="split-visual room-stage">
+        <div class="room-card">
+          <div class="room-head">
+            <span class="rh-label">the room</span>
+            <span class="rh-crew">morning crew &middot; 3 in</span>
+          </div>
+          <div class="room-row">
+            <img class="room-av" src="/assets/face-sam.jpg" alt="" loading="lazy">
+            <div class="room-who">
+              <div class="rw-name">Sam</div>
+              <div class="rw-sub">morning run &middot; 07:12</div>
+            </div>
+            <img class="room-thumb" src="/assets/proof-run.jpg" alt="" loading="lazy">
+            <span class="rx-chip">&#128293; 2</span>
+          </div>
+          <div class="room-row">
+            <img class="room-av" src="/assets/face-mira.jpg" alt="" loading="lazy">
+            <div class="room-who">
+              <div class="rw-name">Mira</div>
+              <div class="rw-sub">gym session &middot; 08:03</div>
+            </div>
+            <img class="room-thumb" src="/assets/proof-gym.jpg" alt="" loading="lazy">
+            <span class="rx-chip">&#128170;</span>
+          </div>
+          <div class="room-row">
+            <span class="room-av-you">you</span>
+            <div class="room-who">
+              <div class="rw-name">You</div>
+              <div class="rw-sub room-you-sub">
+                <span class="s-wait">last one in&hellip;</span>
+                <span class="s-done">deep work &middot; 09:40</span>
+              </div>
+            </div>
+            <div class="room-you-visual">
+              <span class="room-slot"></span>
+              <img class="room-you-thumb" src="/assets/proof-journal.jpg" alt="" loading="lazy">
+            </div>
+          </div>
+        </div>
+        <div class="invite-pill">
+          <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8.5 11.5 11.5 8.5"/><path d="M9 6.5 10.8 4.7a3.2 3.2 0 0 1 4.5 4.5L13.5 11"/><path d="M11 13.5 9.2 15.3a3.2 3.2 0 0 1-4.5-4.5L6.5 9"/></g></svg>
+          getdaily.day/c/7KQ2F
+        </div>
+        <p class="invite-caption">one link invites anyone, even people who don't have Daily yet</p>
+      </div>
+      <div class="split-copy">
+        <p class="split-kicker">crews</p>
+        <h2>Bring witnesses.</h2>
+        <p>A crew is three to six people who see each other show up. Proofs land in the room, reactions fly back, and the last one in gets a gentle nudge. Nothing older than yesterday, because nobody cares what you did in March.</p>
+        <p><strong>One link invites anyone.</strong> Even someone who's never heard of Daily: they tap it, they sign up, they're in your room by tonight.</p>
+      </div>
+    </section>
+
+    <section class="l-duo">
+      <div class="duo-card reveal">
+        <h3>A month of receipts.</h3>
+        <p>Every proof files itself into your gallery, tagged with the habit it proves. Scroll back a month and there it is: evidence you kept going.</p>
+        <div class="pg-chips" aria-hidden="true"><span class="on">all</span><span>gym</span><span>deep work</span><span>reading</span></div>
+        <div class="pg-grid" aria-hidden="true">
+          <div class="pg-cell"><span class="dn">1</span></div>
+          <div class="pg-cell ph" style="--i:0"><img src="/assets/proof-run.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">3</span></div>
+          <div class="pg-cell ph" style="--i:1"><img src="/assets/proof-gym-sq.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell ph" style="--i:2"><img src="/assets/proof-journal.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">6</span></div>
+          <div class="pg-cell"><span class="dn">7</span></div>
+          <div class="pg-cell ph" style="--i:3"><img src="/assets/proof-yoga.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">9</span></div>
+          <div class="pg-cell ph" style="--i:4"><img src="/assets/proof-desk.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">11</span></div>
+          <div class="pg-cell"><span class="dn">12</span></div>
+          <div class="pg-cell ph" style="--i:5"><img src="/assets/proof-meal.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">14</span></div>
+          <div class="pg-cell ph" style="--i:6"><img src="/assets/proof-read.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">16</span></div>
+          <div class="pg-cell ph" style="--i:7"><img src="/assets/proof-bike.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell"><span class="dn">18</span></div>
+          <div class="pg-cell"><span class="dn">19</span></div>
+          <div class="pg-cell ph" style="--i:8"><img src="/assets/proof-cold.jpg" alt="" loading="lazy"></div>
+          <div class="pg-cell today"><span class="dn">21</span></div>
+        </div>
+      </div>
+      <div class="duo-card reveal reveal-d1">
+        <h3>Reminders with taste.</h3>
+        <p>Daily knows your timezone and pings only when it matters: a streak about to break, the crew posting without you, someone reacting to your proof. Never a 9 a.m. guilt trip.</p>
+        <div class="notif-stack" aria-hidden="true">
+          <div class="notif" style="--nd:0s">
+            <span class="notif-ic"><span></span></span>
+            <div class="notif-tx"><b>your 12-day streak ends in 3 hours</b><p>Up by 7:00 is still unchecked</p></div>
+            <time>20:30</time>
+          </div>
+          <div class="notif" style="--nd:.9s">
+            <span class="notif-ic"><span></span></span>
+            <div class="notif-tx"><b>Sam posted to the room</b><p>morning run &middot; be the second one in</p></div>
+            <time>13:00</time>
+          </div>
+          <div class="notif" style="--nd:1.8s">
+            <span class="notif-ic"><span></span></span>
+            <div class="notif-tx"><b>&#128293; Mira reacted to your gym proof</b><p>the room saw it</p></div>
+            <time>now</time>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -498,7 +1012,7 @@
   <section class="l-bottom">
     <div class="l-wrap">
       <h2 class="reveal">Today is enough.</h2>
-      <p class="reveal reveal-d1">Tomorrow gets its own page. Free, open source, and yours: the whole thing is <a class="l-trust-gh" href="https://github.com/heidar-droid/getdaily" target="_blank" rel="noopener">on GitHub</a>.</p>
+      <p class="reveal reveal-d1">Tomorrow gets its own page. Bring a crew, or keep it between you and the camera. Free, open source, and yours: the whole thing is <a class="l-trust-gh" href="https://github.com/heidar-droid/getdaily" target="_blank" rel="noopener">on GitHub</a>.</p>
       <a class="l-open reveal reveal-d2" href="/app/">Get started free</a>
     </div>
   </section>
