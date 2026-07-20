@@ -34,3 +34,14 @@ create policy "own subs" on push_subs for all
 -- Storage: private bucket "instants" (1MB cap, image/jpeg), path <userId>/<uuid>.jpg;
 --   policies: owner write/delete, read for owner OR same_crew(path owner).
 -- push_subs: + tz column (IANA timezone captured at subscribe).
+
+-- 2026-07-20 · client reachability signals on profiles (additive; recorded on
+-- app load). installed_at = first time the app was seen running standalone
+-- (Add to Home Screen); presence is a durable "has installed" flag. push_perm =
+-- last-known Notification.permission ('granted'|'denied'|'default'|'unsupported').
+-- client_seen_at = when these were last written. Powers the install/push columns
+-- in ops/admin.py and the earned in-app install-&-reminders nudge. Own-row RLS
+-- (policy "own profile", ALL) already governs the user's self-update.
+alter table profiles add column if not exists installed_at   timestamptz;
+alter table profiles add column if not exists push_perm      text;
+alter table profiles add column if not exists client_seen_at timestamptz;

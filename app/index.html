@@ -102,6 +102,23 @@
       </form>
     </div>
 
+    <!-- earned install / reminders nudge (surfaces after you've shown up) -->
+    <div class="card nudge" id="nudge-card" style="--i:1" hidden>
+      <div class="card-head">
+        <h2 class="label" id="nudge-title">Reminders</h2>
+        <button id="nudge-dismiss" class="round-btn" aria-label="Not now">
+          <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p class="nudge-line" id="nudge-line">so a nudge can reach you when a streak's on the line</p>
+      <div class="nudge-steps" id="nudge-steps" hidden>
+        <div class="nudge-step"><span class="nudge-num">1</span><span>Tap <b>Share</b>, then <b>Add to Home Screen</b></span></div>
+        <div class="nudge-step"><span class="nudge-num">2</span><span>Open Daily there &amp; tap <b>allow</b></span></div>
+      </div>
+      <p class="nudge-done" id="nudge-done" hidden>reminders on — Daily will nudge you when it matters</p>
+      <button id="nudge-go" class="nudge-go" type="button">turn on reminders</button>
+    </div>
+
     <!-- proof (your gallery of instants) -->
     <div class="card" style="--i:4" data-focusable="proof" id="proof-card">
       <div class="card-head">

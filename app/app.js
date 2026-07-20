@@ -354,7 +354,7 @@ async function toggleRitual(r, li) {
   if (nowChecked) freshProve.add("ritual:" + r.id);
   decorateInstants(li, "ritual", r, nowChecked);
   crewPing();
-  if (nowChecked) maybeMilestone(r, streak);
+  if (nowChecked) { maybeMilestone(r, streak); maybeInstallNudge(); }
   await persist(async () => {
     if (nowChecked) {
       must(await sb.from("ritual_checks").upsert({ ritual_id: r.id, date: viewDate }).select());
@@ -424,7 +424,7 @@ function toggleTask(t, li) {
   const first = new Map([...ul.children].map((el) => [el.dataset.id, el.getBoundingClientRect().top]));
   t.done = !t.done;
   li.classList.toggle("done", t.done);
-  if (t.done) freshProve.add("task:" + t.id);
+  if (t.done) { freshProve.add("task:" + t.id); maybeInstallNudge(); }
   renderHero();
   crewPing();
   persist(async () =>
@@ -702,7 +702,7 @@ const TOUR_STEPS = [
   { sel: "#proof-card", text: "Check something off and a little camera appears — your photo pins to that exact check, and every shot lands here: your private gallery of proof." },
   { sel: "#crew-card", text: "Start a crew — 3 to 6 people who see each other show up. One link invites anyone, even friends without Daily." },
   { sel: "#days", text: "Your last 14 days. Tap any dot to look back. And one detail: your day rolls over at 04:00, not midnight." },
-  { sel: "#profile-btn", text: "Your profile lives here — themes, and reminders: Daily can nudge you before a streak breaks." },
+  { sel: "#profile-btn", text: "Your profile lives here — themes, and reminders: Daily can nudge you before a streak breaks. Once you've shown up, a card also offers to turn them on, right on your day." },
 ];
 let tourStep = 0;
 
@@ -785,6 +785,7 @@ async function loadDay() {
   renderNotes();
   renderDays();
   loadCrew();
+  maybeInstallNudge();
 }
 
 async function start() {
@@ -817,6 +818,7 @@ async function start() {
   if (!$("#ring svg")) buildRing();
   registerSW();
   await loadDay();
+  recordClientState();
   renderProofPeek();
   await consumeJoinCode();
   maybeStartTour();
@@ -1003,7 +1005,94 @@ async function enablePush() {
 
 pushChip.addEventListener("click", () => {
   if (pushChip.textContent === "on ✓") return;
-  enablePush();
+  enablePush().then(recordClientState);
+});
+
+// ---------- client reachability (install + push) ----------
+// Recorded on load, invisible to the user. installed_at is set once, the first
+// time the app is seen running standalone (Add to Home Screen) — a durable
+// "has installed" flag. push_perm mirrors the last-known permission. Powers the
+// install/push columns in ops/admin.py. Own-row RLS governs the write.
+async function recordClientState() {
+  if (!uid()) return;
+  const perm = ("Notification" in window) ? Notification.permission : "unsupported";
+  const firstInstall = isStandalone() && !profile.installed_at;
+  const permChanged = profile.push_perm !== perm;
+  if (!firstInstall && !permChanged && profile.client_seen_at) return; // nothing new
+  const patch = { push_perm: perm, client_seen_at: new Date().toISOString() };
+  if (firstInstall) patch.installed_at = patch.client_seen_at;
+  Object.assign(profile, patch);
+  try { await sb.from("profiles").update(patch).eq("id", uid()); } catch {}
+}
+
+// ---------- earned install / reminders nudge ----------
+// A card on the day, never a popup. Shows once the user has shown up today, only
+// if reminders aren't already on and the platform can actually deliver them.
+const NUDGE_DISMISS_KEY = "daily.installNudge.dismissed";
+const NUDGE_COOLDOWN_DAYS = 10;
+
+function nudgeDismissed() {
+  const ts = Number(localStorage.getItem(NUDGE_DISMISS_KEY) || 0);
+  return ts && (Date.now() - ts) < NUDGE_COOLDOWN_DAYS * 864e5;
+}
+async function pushIsOn() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  const reg = await navigator.serviceWorker.getRegistration("/app/");
+  return !!(reg && (await reg.pushManager.getSubscription()));
+}
+function shownUpToday() {
+  const t = todayStr();
+  const anyCheck = state.rituals.some((r) => (checksByRitual.get(r.id) || new Set()).has(t));
+  const anyTaskDone = viewDate === t && state.tasks.some((x) => x.done);
+  return anyCheck || anyTaskDone;
+}
+function collapseNudge() {
+  const card = $("#nudge-card");
+  collapse(card, () => { card.hidden = true; card.style.cssText = "--i:1"; });
+}
+function paintNudge(iosSteps) {
+  $("#nudge-title").textContent = iosSteps ? "Hear your reminders" : "Reminders";
+  $("#nudge-done").hidden = true;
+  $("#nudge-line").hidden = iosSteps;
+  $("#nudge-steps").hidden = !iosSteps;
+  const go = $("#nudge-go");
+  go.hidden = false;
+  go.textContent = iosSteps ? "allow notifications" : "turn on reminders";
+}
+async function maybeInstallNudge() {
+  const card = $("#nudge-card");
+  if (!card || !card.hidden) return;                       // missing or already up
+  if (!profile.onboarded) return;                          // let the tour finish
+  if (!localStorage.getItem(WN_KEY)) return;               // let what's-new go first
+  if (!wnEl.hidden) return;                                // don't stack on it
+  if (nudgeDismissed()) return;
+  if (viewDate !== todayStr()) return;                     // only nudge on today
+  if (!shownUpToday()) return;
+  const canPush = ("Notification" in window) && ("serviceWorker" in navigator) && ("PushManager" in window);
+  const iosNeedsInstall = isIOS() && !isStandalone();
+  if (!canPush && !iosNeedsInstall) return;                // truly can't deliver here
+  if (("Notification" in window) && Notification.permission === "denied") return; // blocked; don't nag
+  if (await pushIsOn()) return;                            // already reachable
+  paintNudge(iosNeedsInstall);
+  card.hidden = false;
+}
+$("#nudge-dismiss").addEventListener("click", () => {
+  localStorage.setItem(NUDGE_DISMISS_KEY, String(Date.now()));
+  collapseNudge();
+});
+$("#nudge-go").addEventListener("click", async () => {
+  // Same path as the settings chip. On an un-installed iPhone this can't
+  // subscribe yet — the steps above tell them what to do first.
+  await enablePush();
+  await recordClientState();
+  if (await pushIsOn()) {
+    $("#nudge-line").hidden = true;
+    $("#nudge-steps").hidden = true;
+    $("#nudge-go").hidden = true;
+    $("#nudge-title").textContent = "Reminders";
+    $("#nudge-done").hidden = false;
+    setTimeout(collapseNudge, 1600);
+  }
 });
 
 
