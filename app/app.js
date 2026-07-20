@@ -329,6 +329,7 @@ function renderRituals() {
       <span class="streak">${streak > 0 ? "×" + streak : ""}</span>
       <button class="ritual-del" aria-label="Remove">×</button>`;
     li.querySelector(".ritual-label").textContent = r.label;
+    decorateInstants(li, "ritual", r, checked);
     li.querySelector(".check").addEventListener("click", () => toggleRitual(r, li));
     li.querySelector(".ritual-del").addEventListener("click", async () => {
       if (!confirm(`Remove "${r.label}" and its streak?`)) return;
@@ -350,6 +351,9 @@ async function toggleRitual(r, li) {
   const streak = streakOf(r.id, viewDate);
   st.textContent = streak > 0 ? "×" + streak : "";
   st.classList.remove("tick"); void st.offsetWidth; st.classList.add("tick");
+  if (nowChecked) freshProve.add("ritual:" + r.id);
+  decorateInstants(li, "ritual", r, nowChecked);
+  crewPing();
   if (nowChecked) maybeMilestone(r, streak);
   await persist(async () => {
     if (nowChecked) {
@@ -398,6 +402,7 @@ function renderTasks() {
       <span class="task-text"></span>
       <button class="task-del" aria-label="Delete">×</button>`;
     li.querySelector(".task-text").textContent = t.text;
+    decorateInstants(li, "task", t, !!t.done);
     li.querySelector(".check").addEventListener("click", () => toggleTask(t, li));
     li.querySelector(".task-del").addEventListener("click", async () => {
       persist(async () => must(await sb.from("tasks").delete().eq("id", t.id).select()));
@@ -419,7 +424,9 @@ function toggleTask(t, li) {
   const first = new Map([...ul.children].map((el) => [el.dataset.id, el.getBoundingClientRect().top]));
   t.done = !t.done;
   li.classList.toggle("done", t.done);
+  if (t.done) freshProve.add("task:" + t.id);
   renderHero();
+  crewPing();
   persist(async () =>
     must(await sb.from("tasks").update({ done: t.done, done_at: t.done ? new Date().toISOString() : null }).eq("id", t.id).select())
   ).then(() => renderDays());
@@ -576,6 +583,7 @@ function renderAvatar() {
 function openSheet() {
   $("#profile-name").value = profile.name;
   $("#sheet-email").textContent = userEmail;
+  paintPushRow();
   backdrop.hidden = false; sheet.hidden = false;
   backdrop.classList.remove("closing"); sheet.classList.remove("closing");
 }
@@ -691,7 +699,10 @@ const TOUR_STEPS = [
   { sel: "#share-btn", text: "When a streak is worth flexing, share it. This turns your streaks into a card for your Story, no task text ever included." },
   { sel: ".card-ink", text: "Today's tasks. Done work stays on the board — wins should be seen." },
   { sel: "#card-notes", text: "Catch thoughts here as they come. Each one is saved with its moment." },
+  { sel: "#proof-card", text: "Check something off and a little camera appears — your photo pins to that exact check, and every shot lands here: your private gallery of proof." },
+  { sel: "#crew-card", text: "Start a crew — 3 to 6 people who see each other show up. One link invites anyone, even friends without Daily." },
   { sel: "#days", text: "Your last 14 days. Tap any dot to look back. And one detail: your day rolls over at 04:00, not midnight." },
+  { sel: "#profile-btn", text: "Your profile lives here — themes, and reminders: Daily can nudge you before a streak breaks." },
 ];
 let tourStep = 0;
 
@@ -751,15 +762,17 @@ document.addEventListener("keydown", (e) => {
 // ---------- boot ----------
 
 async function loadDay() {
-  const [tasks, notes, rituals, checks] = await Promise.all([
+  const [tasks, notes, rituals, checks, instants] = await Promise.all([
     sb.from("tasks").select().eq("date", viewDate).order("position").order("id"),
     sb.from("notes").select().eq("date", viewDate).order("id"),
     sb.from("rituals").select().eq("active", true).order("position").order("id"),
     sb.from("ritual_checks").select("ritual_id,date").lte("date", viewDate).order("date", { ascending: false }).limit(2000),
+    sb.from("instants").select().eq("user_id", uid()).eq("date", viewDate).order("id"),
   ]);
   state.tasks = tasks.data || [];
   state.notes = notes.data || [];
   state.rituals = rituals.data || [];
+  state.instants = instants.data || [];
   checksByRitual = new Map();
   for (const c of checks.data || []) {
     if (!checksByRitual.has(c.ritual_id)) checksByRitual.set(c.ritual_id, new Set());
@@ -771,6 +784,7 @@ async function loadDay() {
   renderHero();
   renderNotes();
   renderDays();
+  loadCrew();
 }
 
 async function start() {
@@ -793,12 +807,20 @@ async function start() {
     }
   }
   profile = p;
+  if (!profile.avatar && clerk.user?.hasImage && clerk.user.imageUrl) {
+    profile.avatar = clerk.user.imageUrl;
+    sb.from("profiles").update({ avatar: profile.avatar }).eq("id", sessionUserId).then(() => {});
+  }
   renderAvatar();
   gate.hidden = true;
   $("#app").hidden = false;
   if (!$("#ring svg")) buildRing();
+  registerSW();
   await loadDay();
+  renderProofPeek();
+  await consumeJoinCode();
   maybeStartTour();
+  maybeWhatsNew();
   setInterval(renderDate, 60_000);
 }
 
@@ -897,6 +919,838 @@ function dismissToast() {
   toast.classList.add("leaving");
   setTimeout(() => { toast.hidden = true; }, 300);
 }
+
+// ---------- push notifications ----------
+// iOS: Web Push only inside an installed (Add to Home Screen) app, 16.4+.
+// Permission may only be requested from a user gesture — the Reminders chip.
+
+const VAPID_PUBLIC = "BPnVBBPWc1c5f-YO4nQdOyxAEfj5zcYIPSI1WpDqgrUiSXK6rTd4Tl6yQwKIE-4Jz0EtxMTQasLdkCUpGVhRf0Q";
+const pushChip = $("#push-chip");
+const pushHint = $("#push-hint");
+
+function b64ToU8(s) {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+function isStandalone() {
+  return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+async function registerSW() {
+  if (!("serviceWorker" in navigator)) return null;
+  try { return await navigator.serviceWorker.register("/app/sw.js"); }
+  catch { return null; }
+}
+
+async function paintPushRow() {
+  pushHint.hidden = true;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    if (isIOS() && !isStandalone()) {
+      pushChip.textContent = "install first";
+      pushHint.textContent = "reminders need Daily on your home screen — Share, then Add to Home Screen, then come back here";
+      pushHint.hidden = false;
+    } else {
+      pushChip.textContent = "not supported";
+      pushChip.disabled = true;
+    }
+    return;
+  }
+  if (Notification.permission === "denied") {
+    pushChip.textContent = "blocked";
+    pushHint.textContent = "notifications are blocked for Daily in your device settings";
+    pushHint.hidden = false;
+    return;
+  }
+  const reg = await navigator.serviceWorker.getRegistration("/app/");
+  const sub = reg && (await reg.pushManager.getSubscription());
+  pushChip.textContent = sub ? "on ✓" : "turn on";
+  pushChip.classList.toggle("on", !!sub);
+}
+
+async function enablePush() {
+  pushChip.textContent = "…";
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { await paintPushRow(); return; }
+    const reg = (await navigator.serviceWorker.getRegistration("/app/")) || (await registerSW());
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: b64ToU8(VAPID_PUBLIC),
+    });
+    const j = sub.toJSON();
+    await persist(async () =>
+      must(await sb.from("push_subs").upsert(
+        { endpoint: sub.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+          ua: navigator.userAgent.slice(0, 200),
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || null },
+        { onConflict: "endpoint" }
+      ).select())
+    );
+    await paintPushRow();
+    pushHint.textContent = "you're set — Daily will nudge you when it matters";
+    pushHint.hidden = false;
+  } catch (e) {
+    pushChip.textContent = "turn on";
+    pushHint.textContent = "couldn't turn reminders on — try again in a moment";
+    pushHint.hidden = false;
+  }
+}
+
+pushChip.addEventListener("click", () => {
+  if (pushChip.textContent === "on ✓") return;
+  enablePush();
+});
+
+
+// ---------- toast ----------
+
+let appToastTimer = null;
+function showToast(msg) {
+  const t = $("#app-toast");
+  t.textContent = msg;
+  t.hidden = false;
+  t.classList.remove("leaving");
+  clearTimeout(appToastTimer);
+  appToastTimer = setTimeout(() => {
+    t.classList.add("leaving");
+    setTimeout(() => { t.hidden = true; }, 350);
+  }, 3200);
+}
+
+// ---------- focus mode ----------
+// Any card's corner button expands it fullscreen — a FLIP morph.
+
+let focusState = null;
+const focusBackdrop = document.createElement("div");
+focusBackdrop.className = "focus-backdrop";
+focusBackdrop.hidden = true;
+document.body.appendChild(focusBackdrop);
+
+function focusTargetRect() {
+  const desktop = innerWidth >= 920;
+  if (!desktop) {
+    const m = 10;
+    return { top: m, left: m, width: innerWidth - m * 2, height: innerHeight - m * 2 };
+  }
+  const w = Math.min(760, innerWidth * 0.92);
+  const hgt = Math.min(innerHeight * 0.88, 820);
+  return { top: (innerHeight - hgt) / 2, left: (innerWidth - w) / 2, width: w, height: hgt };
+}
+
+function enterFocus(card) {
+  if (focusState) return;
+  const from = card.getBoundingClientRect();
+  const ph = document.createElement("div");
+  ph.style.width = from.width + "px";
+  ph.style.height = from.height + "px";
+  ph.style.flex = "none";
+  card.parentNode.insertBefore(ph, card);
+  Object.assign(card.style, {
+    position: "fixed", zIndex: 30, margin: 0,
+    top: from.top + "px", left: from.left + "px",
+    width: from.width + "px", height: from.height + "px",
+  });
+  card.classList.add("focused");
+  focusBackdrop.hidden = false;
+  focusBackdrop.classList.remove("closing");
+  document.body.style.overflow = "hidden";
+  const to = focusTargetRect();
+  const anim = card.animate(
+    [
+      { top: from.top + "px", left: from.left + "px", width: from.width + "px", height: from.height + "px" },
+      { top: to.top + "px", left: to.left + "px", width: to.width + "px", height: to.height + "px" },
+    ],
+    { duration: 520, easing: "cubic-bezier(.22,1.2,.36,1)", fill: "forwards" }
+  );
+  anim.onfinish = () => {
+    Object.assign(card.style, { top: to.top + "px", left: to.left + "px", width: to.width + "px", height: to.height + "px" });
+    anim.cancel();
+  };
+  focusState = { card, placeholder: ph };
+  if (card.id === "crew-card") renderRoom();
+  if (card.id === "proof-card") renderProofGallery();
+}
+
+function exitFocus() {
+  if (!focusState) return;
+  const { card, placeholder } = focusState;
+  focusState = null;
+  const from = card.getBoundingClientRect();
+  const to = placeholder.getBoundingClientRect();
+  focusBackdrop.classList.add("closing");
+  card.classList.add("collapsing");
+  const anim = card.animate(
+    [
+      { top: from.top + "px", left: from.left + "px", width: from.width + "px", height: from.height + "px",
+        boxShadow: "0 2px 6px rgb(0 0 0 / .1), 0 40px 90px -20px rgb(0 0 0 / .4)" },
+      { top: to.top + "px", left: to.left + "px", width: to.width + "px", height: to.height + "px",
+        boxShadow: "0 1px 2px rgb(0 0 0 / .03), 0 12px 32px -12px rgb(0 0 0 / .10)" },
+    ],
+    { duration: 480, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }
+  );
+  anim.onfinish = () => {
+    card.classList.remove("focused", "collapsing");
+    card.style.cssText = (card.dataset.baseStyle || "") + "; animation: none;";
+    placeholder.remove();
+    anim.cancel();
+    focusBackdrop.hidden = true;
+    document.body.style.overflow = "";
+  };
+}
+
+document.querySelectorAll(".card[data-focusable]").forEach((card) => {
+  card.dataset.baseStyle = card.getAttribute("style") || "";
+  card.querySelector(".focus-btn")?.addEventListener("click", () => {
+    if (focusState?.card === card) exitFocus();
+    else enterFocus(card);
+  });
+});
+focusBackdrop.addEventListener("click", exitFocus);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && focusState) exitFocus();
+});
+
+// ---------- instants ----------
+// Check something off, prove it. Photos live in private storage under crew-law
+// RLS; rows carry the check's label from the moment of capture.
+
+const CAMERA_SVG = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>`;
+const instantFile = $("#instant-file");
+const freshProve = new Set();
+let instantTarget = null;
+const instSrcCache = new Map(); // storage path → object URL
+
+async function instSrc(path) {
+  if (instSrcCache.has(path)) return instSrcCache.get(path);
+  const { data, error } = await sb.storage.from("instants").download(path);
+  if (error) throw error;
+  const url = URL.createObjectURL(data);
+  instSrcCache.set(path, url);
+  return url;
+}
+
+function setTileImg(img, path) {
+  instSrc(path).then((u) => { img.src = u; }).catch(() => {});
+}
+
+function instantsFor(kind, refId) {
+  return (state.instants || []).filter((i) => i.kind === kind && i.ref_id === refId);
+}
+
+function decorateInstants(li, kind, obj, active) {
+  li.querySelector(".prove-btn")?.remove();
+  li.querySelector(".instant-strip")?.remove();
+  const shots = instantsFor(kind, obj.id);
+  if (active) {
+    const btn = document.createElement("button");
+    btn.className = "prove-btn" + (freshProve.has(kind + ":" + obj.id) && !shots.length ? " pulse" : "");
+    btn.setAttribute("aria-label", "Attach a photo proof");
+    btn.innerHTML = CAMERA_SVG;
+    btn.addEventListener("click", () => {
+      instantTarget = { kind, obj };
+      openCamera(obj.label || obj.text);
+    });
+    li.insertBefore(btn, li.querySelector(kind === "task" ? ".task-del" : ".ritual-del"));
+  }
+  if (shots.length) {
+    const strip = document.createElement("div");
+    strip.className = "instant-strip";
+    for (const s of shots) {
+      const tile = document.createElement("button");
+      tile.className = "instant-tile";
+      tile.setAttribute("aria-label", "View proof");
+      const img = document.createElement("img");
+      img.alt = "";
+      setTileImg(img, s.path);
+      tile.appendChild(img);
+      tile.addEventListener("click", () => openLightbox(s));
+      strip.appendChild(tile);
+    }
+    li.appendChild(strip);
+  }
+}
+
+function rerenderInstantRow(kind, refId) {
+  if (refId == null) { renderTasks(); renderRituals(); return; }
+  if (kind === "ritual") renderRituals();
+  else renderTasks();
+}
+
+// downscale + recompress to a JPEG blob under the bucket cap.
+async function fitBlob(source, natW, natH, mirror = false, zoom = 1) {
+  const sw = natW / zoom, sh = natH / zoom;
+  const sx = (natW - sw) / 2, sy = (natH - sh) / 2;
+  for (const [maxDim, q] of [[1280, .78], [1024, .7], [800, .6]]) {
+    const k = Math.min(1, maxDim / Math.max(sw, sh));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(sw * k);
+    canvas.height = Math.round(sh * k);
+    const g = canvas.getContext("2d");
+    if (mirror) { g.translate(canvas.width, 0); g.scale(-1, 1); }
+    g.drawImage(source, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", q));
+    if (blob && blob.size < 950_000) return blob;
+  }
+  throw new Error("image too large");
+}
+
+async function saveInstant(blob) {
+  if (!instantTarget) return;
+  const { kind, obj } = instantTarget;
+  instantTarget = null;
+  freshProve.delete(kind + ":" + obj.id);
+  const path = `${uid()}/${crypto.randomUUID()}.jpg`;
+  await persist(async () => {
+    const up = await sb.storage.from("instants").upload(path, blob, { contentType: "image/jpeg" });
+    if (up.error) throw up.error;
+    const row = must(await sb.from("instants").insert({
+      kind, ref_id: obj.id, label: (obj.label || obj.text || "—").slice(0, 120), date: viewDate, path,
+      visibility: crew ? proofVis : "private",
+    }).select().single());
+    (state.instants = state.instants || []).push(row);
+    rerenderInstantRow(kind, obj.id);
+    renderProofPeek();
+  });
+}
+
+instantFile.addEventListener("change", async () => {
+  const file = instantFile.files[0];
+  instantFile.value = "";
+  if (!file || !instantTarget) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    await saveInstant(await fitBlob(img, img.naturalWidth, img.naturalHeight));
+  } finally { URL.revokeObjectURL(url); }
+});
+
+// ---------- custom camera (in-app viewfinder; native picker fallback) ----------
+
+const camEl = $("#camera"), camVideo = $("#cam-video");
+let camStream = null;
+let camFacing = "environment";
+let camZoom = 1;
+let camZoomHw = null;
+let camZoomRaf = false;
+
+function paintZoom() {
+  camVideo.style.transform =
+    (camFacing === "user" ? "scaleX(-1) " : "") +
+    (camZoomHw ? "" : `scale(${camZoom})`);
+  const badge = $("#cam-zoom");
+  badge.textContent = camZoom.toFixed(1).replace(/\.0$/, "") + "×";
+  badge.hidden = camZoom === 1;
+}
+
+function applyZoom() {
+  if (camZoomRaf) return;
+  camZoomRaf = true;
+  requestAnimationFrame(() => {
+    camZoomRaf = false;
+    const track = camStream?.getVideoTracks()[0];
+    if (camZoomHw && track) track.applyConstraints({ advanced: [{ zoom: camZoom }] }).catch(() => {});
+    paintZoom();
+  });
+}
+
+async function startStream() {
+  stopStream();
+  camStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: camFacing, width: { ideal: 1920 }, height: { ideal: 1440 } },
+    audio: false,
+  });
+  camVideo.srcObject = camStream;
+  camZoom = 1;
+  const caps = camStream.getVideoTracks()[0].getCapabilities?.();
+  camZoomHw = caps?.zoom && caps.zoom.max > 1 ? { min: Math.max(1, caps.zoom.min), max: Math.min(5, caps.zoom.max) } : null;
+  paintZoom();
+  await camVideo.play().catch(() => {});
+}
+function stopStream() {
+  if (camStream) { camStream.getTracks().forEach((t) => t.stop()); camStream = null; }
+  camVideo.srcObject = null;
+}
+
+let proofVis = localStorage.getItem("daily.proofvis") || "crew";
+function paintVis() {
+  const wrap = $("#cam-vis");
+  wrap.hidden = !crew; // no crew → everything is yours alone anyway
+  wrap.querySelectorAll(".cam-vis-opt").forEach((b) =>
+    b.classList.toggle("on", b.dataset.vis === proofVis));
+}
+document.querySelectorAll(".cam-vis-opt").forEach((b) =>
+  b.addEventListener("click", () => {
+    proofVis = b.dataset.vis;
+    localStorage.setItem("daily.proofvis", proofVis);
+    paintVis();
+  }));
+
+async function openCamera(label) {
+  if (!navigator.mediaDevices?.getUserMedia) { instantFile.click(); return; }
+  $("#cam-tag").textContent = `${label} · now`;
+  paintVis();
+  try { await startStream(); }
+  catch { instantFile.click(); return; }
+  camEl.hidden = false;
+  requestAnimationFrame(() => camEl.classList.add("open"));
+  document.body.style.overflow = "hidden";
+}
+
+function closeCamera() {
+  camEl.classList.remove("open");
+  setTimeout(() => { camEl.hidden = true; stopStream(); document.body.style.overflow = ""; }, 320);
+}
+
+const camPointers = new Map();
+let pinchBase = null, lastTap = 0;
+const camVf = document.querySelector(".cam-viewfinder");
+const zClamp = (z) => Math.min(camZoomHw ? camZoomHw.max : 5, Math.max(1, z));
+
+camVf.addEventListener("pointerdown", (e) => {
+  camPointers.set(e.pointerId, e);
+  if (camPointers.size === 1) {
+    const now = performance.now();
+    if (now - lastTap < 320) { camZoom = zClamp(camZoom > 1.5 ? 1 : 2); applyZoom(); }
+    lastTap = now;
+  }
+});
+camVf.addEventListener("pointermove", (e) => {
+  if (!camPointers.has(e.pointerId)) return;
+  camPointers.set(e.pointerId, e);
+  if (camPointers.size === 2) {
+    const [a, b] = [...camPointers.values()];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    if (!pinchBase) pinchBase = { dist, zoom: camZoom };
+    else { camZoom = zClamp(pinchBase.zoom * (dist / pinchBase.dist)); applyZoom(); }
+  }
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+  camVf.addEventListener(ev, (e) => {
+    camPointers.delete(e.pointerId);
+    if (camPointers.size < 2) pinchBase = null;
+  });
+}
+
+$("#cam-skip").addEventListener("click", () => { instantTarget = null; closeCamera(); });
+$("#cam-flip").addEventListener("click", async () => {
+  camFacing = camFacing === "environment" ? "user" : "environment";
+  try { await startStream(); } catch { camFacing = camFacing === "user" ? "environment" : "user"; }
+});
+$("#cam-shutter").addEventListener("click", async () => {
+  if (!camStream || !camVideo.videoWidth) return;
+  const flash = $("#cam-flash");
+  flash.classList.remove("fire"); void flash.offsetWidth; flash.classList.add("fire");
+  const blob = await fitBlob(camVideo, camVideo.videoWidth, camVideo.videoHeight,
+    camFacing === "user", camZoomHw ? 1 : camZoom);
+  setTimeout(closeCamera, 240);
+  await saveInstant(blob);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !camEl.hidden) { instantTarget = null; closeCamera(); }
+});
+
+// ---------- lightbox ----------
+
+const lightbox = $("#lightbox"), lightboxImg = $("#lightbox-img");
+let lightboxShot = null;
+
+function openLightbox(shot) {
+  lightboxShot = shot;
+  setTileImg(lightboxImg, shot.path);
+  const when = new Date(shot.created_at);
+  const hhmm = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+  $("#lightbox-meta").textContent = `${shot.label} · ${hhmm}`;
+  $("#lightbox-del").hidden = shot.user_id !== uid();
+  if (shot.user_id === uid() && shot.visibility === "private" && crew) $("#lightbox-meta").textContent += " · just you";
+  lightbox.hidden = false;
+  requestAnimationFrame(() => lightbox.classList.add("open"));
+}
+function closeLightbox() {
+  lightbox.classList.remove("open");
+  setTimeout(() => { lightbox.hidden = true; lightboxImg.src = ""; lightboxShot = null; }, 260);
+}
+lightbox.addEventListener("click", (e) => { if (e.target === lightbox || e.target === lightboxImg) closeLightbox(); });
+$("#lightbox-del").addEventListener("click", async () => {
+  if (!lightboxShot) return;
+  const shot = lightboxShot;
+  closeLightbox();
+  await persist(async () => {
+    must(await sb.from("instants").delete().eq("id", shot.id).select());
+    await sb.storage.from("instants").remove([shot.path]);
+  });
+  state.instants = (state.instants || []).filter((i) => i.id !== shot.id);
+  rerenderInstantRow(shot.kind, shot.ref_id);
+  renderProofPeek();
+  if ($("#crew-card").classList.contains("focused")) renderRoom();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !lightbox.hidden) closeLightbox();
+});
+
+// ---------- proof (your gallery of instants) ----------
+
+let proofMonth = todayStr().slice(0, 7);
+let proofFilter = null;
+const proofCache = new Map();
+
+async function fetchProofMonth(m) {
+  if (proofCache.has(m)) return proofCache.get(m);
+  const rows = must(await sb.from("instants").select()
+    .eq("user_id", uid()).gte("date", m + "-01").lte("date", m + "-31")
+    .order("date", { ascending: false }).order("id", { ascending: false }));
+  proofCache.set(m, rows);
+  return rows;
+}
+
+function proofTile(s, big) {
+  const tile = document.createElement("button");
+  tile.className = "instant-tile " + (big ? "proof-tile" : "peek-tile");
+  const img = document.createElement("img");
+  img.alt = ""; img.loading = "lazy";
+  setTileImg(img, s.path);
+  tile.appendChild(img);
+  if (big) {
+    const d = document.createElement("span");
+    d.className = "proof-day";
+    d.textContent = Number(String(s.date).slice(8));
+    tile.appendChild(d);
+  }
+  tile.addEventListener("click", () => openLightbox(s));
+  return tile;
+}
+
+function monthLabel(m) {
+  const [y, mo] = m.split("-").map(Number);
+  return new Date(y, mo - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+function shiftMonth(m, d) {
+  const [y, mo] = m.split("-").map(Number);
+  const dt = new Date(y, mo - 1 + d, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function renderProofPeek() {
+  proofCache.clear();
+  proofMonth = todayStr().slice(0, 7);
+  proofFilter = null;
+  const rows = must(await sb.from("instants").select()
+    .eq("user_id", uid()).order("id", { ascending: false }).limit(3));
+  const peek = $("#proof-peek");
+  peek.innerHTML = "";
+  rows.forEach((s) => peek.appendChild(proofTile(s, false)));
+  $("#proof-empty").hidden = rows.length > 0;
+  if ($("#proof-card").classList.contains("focused")) renderProofGallery();
+}
+
+async function renderProofGallery() {
+  const rows = await fetchProofMonth(proofMonth);
+  $("#proof-month").textContent = monthLabel(proofMonth);
+  $("#proof-next").disabled = proofMonth >= todayStr().slice(0, 7);
+  const labels = [...new Set(rows.map((r) => r.label))];
+  const fwrap = $("#proof-filters");
+  fwrap.innerHTML = "";
+  if (labels.length > 1) {
+    for (const l of ["all", ...labels]) {
+      const chip = document.createElement("button");
+      chip.className = "pf-chip" + ((l === "all" ? null : l) === proofFilter ? " cur" : "");
+      chip.textContent = l;
+      chip.addEventListener("click", () => { proofFilter = l === "all" ? null : l; renderProofGallery(); });
+      fwrap.appendChild(chip);
+    }
+  }
+  const grid = $("#proof-grid");
+  grid.innerHTML = "";
+  const vis = rows.filter((r) => !proofFilter || r.label === proofFilter);
+  vis.forEach((s) => grid.appendChild(proofTile(s, true)));
+  $("#proof-grid-empty").hidden = vis.length > 0;
+}
+
+$("#proof-prev").addEventListener("click", () => { proofMonth = shiftMonth(proofMonth, -1); proofFilter = null; renderProofGallery(); });
+$("#proof-next").addEventListener("click", () => { proofMonth = shiftMonth(proofMonth, 1); proofFilter = null; renderProofGallery(); });
+
+// ---------- crew ----------
+// A room of 3-6. The invite link is the whole mechanic; RLS is the whole
+// privacy model. room_status() exposes shape (counts/names/avatars), never text.
+
+const RX_EMOJI = ["🔥", "💪", "👏", "😮"];
+const RING_DASH = 113;
+let crew = null;          // { id, name, code, owner }
+let roomMembers = [];     // room_status() rows
+let crewPingTimer = null;
+
+function crewLink() { return `${location.origin}/c/${crew.code}`; }
+
+function memberProgress(m) {
+  if (m.tasks_total > 0) return m.tasks_done / m.tasks_total;
+  if (m.rituals_total > 0) return m.checks / m.rituals_total;
+  return 0;
+}
+
+function crewAvatarHTML(m, progress) {
+  const face = m.avatar
+    ? `<span class="cw-face" style="background:url(${m.avatar}) center/cover no-repeat"></span>`
+    : `<span class="cw-face cw-face-init">${(m.name || "?").slice(0, 1).toUpperCase()}</span>`;
+  return `<span class="cw-av"><svg viewBox="0 0 40 40"><circle class="cw-tr" cx="20" cy="20" r="18"/><circle class="cw-fl" cx="20" cy="20" r="18" style="stroke-dashoffset:${(RING_DASH * (1 - progress)).toFixed(1)}"/></svg>${face}</span>`;
+}
+
+async function loadCrew() {
+  const crews = must(await sb.from("crews").select());
+  crew = crews[0] || null;
+  if (!crew) {
+    $("#crew-empty").hidden = false;
+    $("#crew-invite-btn").hidden = true;
+    $("#crew-count").textContent = "";
+    $("#crew-list").innerHTML = "";
+    $("#crew-room").innerHTML = "";
+    return;
+  }
+  $("#crew-empty").hidden = true;
+  $("#crew-invite-btn").hidden = false;
+  roomMembers = must(await sb.rpc("room_status", { d: viewDate }));
+  renderCrewList();
+  if ($("#crew-card").classList.contains("focused")) renderRoom();
+}
+
+function renderCrewList() {
+  const list = $("#crew-list");
+  list.innerHTML = "";
+  let inCount = 0;
+  for (const m of roomMembers) {
+    const me = m.user_id === uid();
+    const p = memberProgress(m);
+    if (p > 0) inCount++;
+    const li = document.createElement("li");
+    li.className = "cw-row" + (p === 0 && !me ? " cw-out" : "");
+    const status = p >= 1 ? "closed" : p > 0 ? (me ? `${Math.round(p * 100)}% in` : "on it") : "not in yet";
+    li.innerHTML = crewAvatarHTML(m, p) +
+      `<span class="cw-name">${me ? "You" : ""}</span><span class="cw-status">${status}</span>`;
+    li.querySelector(".cw-name").textContent = me ? "You" : m.name;
+    list.appendChild(li);
+  }
+  $("#crew-count").textContent = roomMembers.length ? `${inCount}/${roomMembers.length} in` : "";
+}
+
+function crewPing() {
+  // refresh the room's shape shortly after my own state changes
+  clearTimeout(crewPingTimer);
+  if (!crew) return;
+  crewPingTimer = setTimeout(loadCrew, 900);
+}
+
+async function shareCrewLink() {
+  const link = crewLink();
+  if (navigator.share) {
+    try { await navigator.share({ title: "Join my crew on Daily", url: link }); return; } catch {}
+  }
+  await navigator.clipboard.writeText(link).catch(() => {});
+  showToast("link copied — send it to your people");
+}
+
+$("#crew-invite-btn").addEventListener("click", shareCrewLink);
+$("#crew-create-btn").addEventListener("click", () => {
+  $("#crew-empty").hidden = true;
+  $("#crew-form").hidden = false;
+  $("#crew-name-input").focus();
+});
+$("#crew-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("#crew-name-input").value.trim();
+  if (!name) return;
+  $("#crew-form").hidden = true;
+  $("#crew-name-input").value = "";
+  try {
+    await persist(async () => {
+      const res = await sb.rpc("create_crew", { crew_name: name });
+      if (res.error) throw res.error;
+      await loadCrew();
+      showToast(`${name} is live — share your link`);
+      shareCrewLink();
+    });
+  } catch (e) {
+    if (!crew) $("#crew-empty").hidden = false;
+    showToast(String(e.message || "").includes("already") ? "you're already in a crew" : "couldn't start the crew — try again");
+  }
+});
+$("#crew-name-input").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { $("#crew-form").hidden = true; if (!crew) $("#crew-empty").hidden = false; }
+});
+
+async function renderRoom() {
+  const room = $("#crew-room");
+  if (!crew) { room.innerHTML = ""; return; }
+  room.innerHTML = `<p class="room-note">the room · today &amp; yesterday, then it's yours alone</p>`;
+  const days = [viewDate, shiftDate(viewDate, -1)];
+  const shots = must(await sb.from("instants").select().in("date", days)
+    .order("created_at", { ascending: false }));
+  const ids = shots.map((s) => s.id);
+  const rx = ids.length ? must(await sb.from("reactions").select().in("instant_id", ids)) : [];
+  const nameOf = new Map(roomMembers.map((m) => [m.user_id, m.user_id === uid() ? "You" : m.name]));
+
+  const byUser = new Map();
+  for (const s of shots) {
+    if (!byUser.has(s.user_id)) byUser.set(s.user_id, []);
+    byUser.get(s.user_id).push(s);
+  }
+  // you first, then crewmates in room order
+  const order = [uid(), ...roomMembers.map((m) => m.user_id).filter((u) => u !== uid())];
+  let any = false;
+  for (const u of order) {
+    const mine = u === uid();
+    const list = byUser.get(u) || [];
+    if (!list.length && !mine) continue;
+    const sec = document.createElement("div");
+    sec.className = "room-sec";
+    sec.innerHTML = `<div class="room-who"><b></b></div>`;
+    sec.querySelector("b").textContent = nameOf.get(u) || "—";
+    if (!list.length) {
+      sec.innerHTML += `<p class="room-empty">check something off and prove it — it lands here</p>`;
+    }
+    for (const s of list) {
+      any = true;
+      const when = new Date(s.created_at);
+      const hhmm = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+      const item = document.createElement("div");
+      item.className = "room-item";
+      const tile = document.createElement("button");
+      tile.className = "instant-tile room-tile";
+      const img = document.createElement("img");
+      img.alt = ""; setTileImg(img, s.path);
+      tile.appendChild(img);
+      tile.addEventListener("click", () => openLightbox(s));
+      const meta = document.createElement("div");
+      meta.className = "room-meta";
+      meta.textContent = `${s.label} ✓ · ${hhmm}`;
+      item.appendChild(tile);
+      item.appendChild(meta);
+      item.appendChild(rxBar(s, rx.filter((r) => r.instant_id === s.id)));
+      sec.appendChild(item);
+    }
+    room.appendChild(sec);
+  }
+  const foot = document.createElement("button");
+  foot.className = "room-leave";
+  foot.textContent = "leave the crew";
+  foot.addEventListener("click", async () => {
+    if (!confirm(`Leave ${crew.name}? Your instants stay yours.`)) return;
+    await persist(async () => {
+      const res = await sb.rpc("leave_crew");
+      if (res.error) throw res.error;
+    });
+    exitFocus();
+    await loadCrew();
+  });
+  room.appendChild(foot);
+}
+
+function rxBar(shot, rows) {
+  const bar = document.createElement("div");
+  bar.className = "rx-bar";
+  for (const e of RX_EMOJI) {
+    const all = rows.filter((r) => r.emoji === e);
+    const mine = all.some((r) => r.user_id === uid());
+    const chip = document.createElement("button");
+    chip.className = "rx-chip" + (mine ? " hot" : "");
+    chip.innerHTML = `${e}${all.length ? ` <b>${all.length}</b>` : ""}`;
+    chip.addEventListener("click", async () => {
+      if (mine) {
+        await sb.from("reactions").delete().eq("instant_id", shot.id).eq("emoji", e).eq("user_id", uid());
+      } else {
+        await sb.from("reactions").insert({ instant_id: shot.id, emoji: e });
+        fetch("/api/react-notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ instant_id: shot.id, emoji: e }),
+        }).catch(() => {});
+      }
+      renderRoom();
+    });
+    bar.appendChild(chip);
+  }
+  return bar;
+}
+
+// ---------- invite code (arrives via getdaily.day/c/CODE) ----------
+
+async function consumeJoinCode() {
+  const code = localStorage.getItem("daily.join");
+  if (!code) return;
+  localStorage.removeItem("daily.join");
+  try {
+    const res = await sb.rpc("join_crew", { invite_code: code });
+    if (res.error) throw res.error;
+    await loadCrew();
+    showToast(res.data.already ? `you're already in ${res.data.name}` : `you're in ${res.data.name} — welcome to the room`);
+  } catch (e) {
+    const msg = String(e.message || e);
+    showToast(msg.includes("full") ? "that crew is full" :
+              msg.includes("already in a crew") ? "you're already in a crew" :
+              "that invite link didn't work");
+  }
+}
+
+// ---------- what's new ----------
+
+const WN_KEY = "daily.wn.2026-07-20";
+const WN_BEATS = [
+  ["Check it off, prove it", "Attach a photo the moment you finish something. The camera opens in-app, the shot pins to that exact check."],
+  ["Any card, fullscreen", "Tap the corner of any card and it expands to fill the screen. Your thoughts, your tasks — room to breathe."],
+  ["Crews are here", "3 to 6 people who see each other show up. One link invites anyone — even friends who don't have Daily yet."],
+  ["Reminders that know when", "Only when a streak is truly on the line, when the room reacts, or when you're the last one in."],
+];
+const wnEl = $("#whatsnew");
+let wnStep = 0;
+
+function wnPaint() {
+  document.querySelectorAll(".wn-v").forEach((v) => v.classList.toggle("on", Number(v.dataset.wn) === wnStep));
+  $("#wn-title").textContent = WN_BEATS[wnStep][0];
+  $("#wn-text").textContent = WN_BEATS[wnStep][1];
+  $("#wn-dots").innerHTML = WN_BEATS.map((_, i) => `<span class="wn-dot${i === wnStep ? " on" : ""}"></span>`).join("");
+  const last = wnStep === WN_BEATS.length - 1;
+  $("#wn-btn").textContent = !last ? "next"
+    : (("Notification" in window) && Notification.permission !== "granted" ? "turn on reminders" : "done");
+}
+
+function wnClose() {
+  localStorage.setItem(WN_KEY, "1");
+  wnEl.classList.remove("open");
+  setTimeout(() => { wnEl.hidden = true; }, 320);
+}
+
+function maybeWhatsNew() {
+  if (localStorage.getItem(WN_KEY)) return;
+  if (!profile.onboarded) return; // new users get the tour, not the changelog
+  const photo = profile.avatar || (clerk.user?.hasImage ? clerk.user.imageUrl : null);
+  const meFace = photo
+    ? `<span class="cw-av wn-big"><svg viewBox="0 0 40 40"><circle class="cw-tr" cx="20" cy="20" r="18"/><circle class="cw-fl" cx="20" cy="20" r="18" style="stroke-dashoffset:0"/></svg><span class="cw-face" style="background:url(${photo}) center/cover no-repeat"></span></span>`
+    : crewAvatarHTML({ name: profile.name }, 1);
+  $("#wn-crew-vis").innerHTML = meFace +
+    crewAvatarHTML({ name: "Sam", avatar: "/app/demo/sam.jpg" }, .6) +
+    crewAvatarHTML({ name: "Mira", avatar: "/app/demo/mira.jpg" }, .35);
+  wnStep = 0;
+  wnPaint();
+  setTimeout(() => {
+    wnEl.hidden = false;
+    requestAnimationFrame(() => wnEl.classList.add("open"));
+  }, 900);
+}
+
+$("#wn-btn").addEventListener("click", async () => {
+  if (wnStep < WN_BEATS.length - 1) { wnStep++; wnPaint(); return; }
+  if ($("#wn-btn").textContent === "turn on reminders") {
+    wnClose();
+    openSheet();
+    setTimeout(enablePush, 400);
+    return;
+  }
+  wnClose();
+});
+$("#wn-skip").addEventListener("click", wnClose);
 
 applyTheme(localStorage.getItem(THEME_STORE) || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 

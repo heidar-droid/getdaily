@@ -83,12 +83,15 @@
       </div>
     </div>
 
-    <div class="card" id="card-rituals" style="--i:1">
+    <div class="card" id="card-rituals" style="--i:1" data-focusable="rituals">
       <div class="card-head">
         <h2 class="label">Non&#8209;negotiables</h2>
         <span class="head-actions">
           <button id="share-btn" class="round-btn share-btn" aria-label="Share your streaks">
             <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4m0 0L8 8m4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
+          </button>
+          <button class="round-btn focus-btn" aria-label="Focus this card">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 3H4a1 1 0 0 0-1 1v5M15 3h5a1 1 0 0 1 1 1v5M9 21H4a1 1 0 0 1-1-1v-5M15 21h5a1 1 0 0 0 1-1v-5"/></svg>
           </button>
           <button id="ritual-add-btn" class="round-btn" aria-label="Add non-negotiable">+</button>
         </span>
@@ -99,14 +102,43 @@
       </form>
     </div>
 
+    <!-- proof (your gallery of instants) -->
+    <div class="card" style="--i:4" data-focusable="proof" id="proof-card">
+      <div class="card-head">
+        <h2 class="label">Proof</h2>
+        <span class="head-actions">
+          <button class="round-btn focus-btn" aria-label="Focus this card">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 3H4a1 1 0 0 0-1 1v5M15 3h5a1 1 0 0 1 1 1v5M9 21H4a1 1 0 0 1-1-1v-5M15 21h5a1 1 0 0 0 1-1v-5"/></svg>
+          </button>
+        </span>
+      </div>
+      <div id="proof-peek" class="proof-peek"></div>
+      <p id="proof-empty" class="empty-soft" hidden>check something off and prove it — it lands here</p>
+      <div id="proof-gallery" class="proof-gallery">
+        <div class="proof-nav">
+          <button id="proof-prev" class="round-btn" aria-label="Previous month"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></svg></button>
+          <span id="proof-month" class="proof-month"></span>
+          <button id="proof-next" class="round-btn" aria-label="Next month"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div id="proof-filters" class="proof-filters"></div>
+        <div id="proof-grid" class="proof-grid"></div>
+        <p id="proof-grid-empty" class="empty-soft" hidden>nothing proven this month</p>
+      </div>
+    </div>
+
     </div>
 
     <div class="col col-b">
 
-    <div class="card card-ink" style="--i:2">
+    <div class="card card-ink" id="card-tasks" style="--i:2" data-focusable="tasks">
       <div class="card-head">
         <h2 class="label">Today</h2>
-        <span id="task-count" class="count"></span>
+        <span class="head-actions">
+          <span id="task-count" class="count"></span>
+          <button class="round-btn focus-btn" aria-label="Focus this card">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 3H4a1 1 0 0 0-1 1v5M15 3h5a1 1 0 0 1 1 1v5M9 21H4a1 1 0 0 1-1-1v-5M15 21h5a1 1 0 0 0 1-1v-5"/></svg>
+          </button>
+        </span>
       </div>
       <ul id="tasks" class="tasks"></ul>
       <p id="tasks-empty" class="empty" hidden>A clear day.</p>
@@ -116,10 +148,15 @@
       </form>
     </div>
 
-    <div class="card" id="card-notes" style="--i:3">
+    <div class="card" id="card-notes" style="--i:3" data-focusable="notes">
       <div class="card-head">
         <h2 class="label">Notes</h2>
-        <span id="note-count" class="count"></span>
+        <span class="head-actions">
+          <span id="note-count" class="count"></span>
+          <button class="round-btn focus-btn" aria-label="Focus this card">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 3H4a1 1 0 0 0-1 1v5M15 3h5a1 1 0 0 1 1 1v5M9 21H4a1 1 0 0 1-1-1v-5M15 21h5a1 1 0 0 0 1-1v-5"/></svg>
+          </button>
+        </span>
       </div>
       <ul id="notes" class="notes"></ul>
       <p id="notes-empty" class="empty-soft" hidden>Thoughts, sparks, lines worth keeping.</p>
@@ -128,6 +165,32 @@
           placeholder="capture a thought…" spellcheck="false"></textarea>
         <button type="submit" class="note-send" aria-label="Save note">&uarr;</button>
       </form>
+    </div>
+
+
+    <!-- crew -->
+    <div class="card" style="--i:5" data-focusable="crew" id="crew-card">
+      <div class="card-head">
+        <h2 class="label">Crew</h2>
+        <span class="head-actions">
+          <span id="crew-count" class="count"></span>
+          <button id="crew-invite-btn" class="round-btn" aria-label="Copy invite link" hidden>
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+          </button>
+          <button class="round-btn focus-btn" aria-label="Focus this card">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 3H4a1 1 0 0 0-1 1v5M15 3h5a1 1 0 0 1 1 1v5M9 21H4a1 1 0 0 1-1-1v-5M15 21h5a1 1 0 0 0 1-1v-5"/></svg>
+          </button>
+        </span>
+      </div>
+      <div id="crew-empty" class="crew-empty" hidden>
+        <p>body doubling, built in —<br>3 to 6 people who see each other show up</p>
+        <button id="crew-create-btn" class="crew-cta" type="button">start a crew</button>
+      </div>
+      <form id="crew-form" class="inline-form" hidden>
+        <input id="crew-name-input" type="text" maxlength="60" placeholder="name your crew…" autocomplete="off" spellcheck="false">
+      </form>
+      <ul id="crew-list" class="crew-list"></ul>
+      <div id="crew-room" class="crew-room"></div>
     </div>
 
     </div>
@@ -158,6 +221,11 @@
     <span class="sheet-row-label">Appearance</span>
     <button id="sheet-theme" class="sheet-chip">toggle</button>
   </div>
+  <div class="sheet-row">
+    <span class="sheet-row-label">Reminders</span>
+    <button id="push-chip" class="sheet-chip">turn on</button>
+  </div>
+  <p id="push-hint" class="push-hint" hidden></p>
   <div class="sheet-row">
     <span class="sheet-row-label">Day rolls over</span>
     <span class="sheet-row-value">04:00</span>
@@ -222,6 +290,55 @@
       <span id="tour-dots" class="tour-dots"></span>
       <button id="tour-next" class="tour-next">Next</button>
     </div>
+  </div>
+</div>
+
+
+<!-- what's new -->
+<div id="whatsnew" class="wn" hidden>
+  <div class="wn-card">
+    <span class="wn-eyebrow">your Daily just grew</span>
+    <div class="wn-visual">
+      <div class="wn-v" data-wn="0"><div class="wn-cam"><img src="/app/demo/gym.jpg" alt=""><span class="wn-shutter"><i></i></span></div></div>
+      <div class="wn-v" data-wn="1"><div class="wn-stage"><div class="wn-mini"><div class="wn-mini-head">Notes <span>3</span></div><div class="wn-mini-line"></div><div class="wn-mini-line short"></div></div></div></div>
+      <div class="wn-v" data-wn="2"><div class="wn-crew-vis" id="wn-crew-vis"></div></div>
+      <div class="wn-v" data-wn="3"><div class="wn-notif"><span class="wn-nic"><span class="wn-nring"></span></span><div><b>Gym — ×6 on the line</b><br>one check keeps it</div></div></div>
+    </div>
+    <h3 id="wn-title"></h3>
+    <p id="wn-text"></p>
+    <div class="wn-dots" id="wn-dots"></div>
+    <button id="wn-btn" class="wn-btn" type="button"></button>
+    <button id="wn-skip" class="wn-skip" type="button">skip</button>
+  </div>
+</div>
+
+<!-- instants -->
+<input id="instant-file" type="file" accept="image/*" capture="environment" hidden>
+<div id="camera" class="camera" hidden>
+  <div class="cam-viewfinder">
+    <video id="cam-video" autoplay playsinline muted></video>
+    <span id="cam-tag" class="cam-tag"></span>
+    <span id="cam-zoom" class="cam-zoom" hidden>1.0×</span>
+    <div id="cam-flash" class="cam-flash"></div>
+  </div>
+  <div id="cam-vis" class="cam-vis" hidden>
+    <button type="button" class="cam-vis-opt" data-vis="crew">room</button>
+    <button type="button" class="cam-vis-opt" data-vis="private">just me</button>
+  </div>
+  <div class="cam-controls">
+    <button id="cam-skip" class="cam-skip">skip</button>
+    <button id="cam-shutter" class="cam-shutter" aria-label="Capture"><i></i></button>
+    <button id="cam-flip" class="cam-flip" aria-label="Flip camera">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v5"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M14 15l3 3 3-3M17 18v-6"/></svg>
+    </button>
+  </div>
+</div>
+<div id="app-toast" class="app-toast" hidden></div>
+<div id="lightbox" class="lightbox" hidden>
+  <img id="lightbox-img" alt="Instant">
+  <div class="lightbox-bar">
+    <span id="lightbox-meta"></span>
+    <button id="lightbox-del" aria-label="Delete instant">delete</button>
   </div>
 </div>
 

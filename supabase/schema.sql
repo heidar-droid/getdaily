@@ -1,89 +1,36 @@
--- Daily schema for Supabase (Postgres)
--- User ids are TEXT because auth is handled by Clerk (ids look like "user_...").
--- Every table is protected by RLS keyed on the Clerk JWT "sub" claim.
+-- getdaily — schema mirror (additive-only; established 2026-07-20).
+-- Tables created before this date (profiles, tasks, rituals, ritual_checks,
+-- notes) predate this file and live only in the database; new DDL is mirrored
+-- here from now on. RLS pattern everywhere: user_id = (select auth.jwt()->>'sub')
+-- (Clerk JWT via Supabase third-party auth).
 
-create table public.profiles (
-  id         text primary key,
-  name       text not null default '',
-  avatar     text,
-  onboarded  boolean not null default false,
+-- 2026-07-20 · push notifications (web push subscriptions, one row per device)
+create table if not exists push_subs (
+  id bigint generated always as identity primary key,
+  user_id text not null default (auth.jwt() ->> 'sub'),
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  ua text,
   created_at timestamptz not null default now()
 );
+alter table push_subs enable row level security;
+create policy "own subs" on push_subs for all
+  using (user_id = (select (auth.jwt() ->> 'sub')))
+  with check (user_id = (select (auth.jwt() ->> 'sub')));
 
-create table public.tasks (
-  id         bigint generated always as identity primary key,
-  user_id    text not null default (auth.jwt() ->> 'sub'),
-  date       text not null,
-  text       text not null,
-  done       boolean not null default false,
-  done_at    timestamptz,
-  position   integer not null default 0,
-  created_at timestamptz not null default now()
-);
-
-create table public.rituals (
-  id         bigint generated always as identity primary key,
-  user_id    text not null default (auth.jwt() ->> 'sub'),
-  label      text not null,
-  position   integer not null default 0,
-  active     boolean not null default true,
-  created_at timestamptz not null default now()
-);
-
-create table public.ritual_checks (
-  ritual_id  bigint not null references public.rituals(id) on delete cascade,
-  user_id    text not null default (auth.jwt() ->> 'sub'),
-  date       text not null,
-  primary key (ritual_id, date)
-);
-
-create table public.notes (
-  id         bigint generated always as identity primary key,
-  user_id    text not null default (auth.jwt() ->> 'sub'),
-  date       text not null,
-  text       text not null,
-  created_at timestamptz not null default now()
-);
-
--- Row Level Security: each user sees only their own rows.
-alter table public.profiles      enable row level security;
-alter table public.tasks         enable row level security;
-alter table public.rituals       enable row level security;
-alter table public.ritual_checks enable row level security;
-alter table public.notes         enable row level security;
-
-create policy "own profile" on public.profiles for all
-  using (id = (select auth.jwt() ->> 'sub'))
-  with check (id = (select auth.jwt() ->> 'sub'));
-
-create policy "own tasks" on public.tasks for all
-  using (user_id = (select auth.jwt() ->> 'sub'))
-  with check (user_id = (select auth.jwt() ->> 'sub'));
-
-create policy "own rituals" on public.rituals for all
-  using (user_id = (select auth.jwt() ->> 'sub'))
-  with check (user_id = (select auth.jwt() ->> 'sub'));
-
-create policy "own checks" on public.ritual_checks for all
-  using (user_id = (select auth.jwt() ->> 'sub'))
-  with check (user_id = (select auth.jwt() ->> 'sub'));
-
-create policy "own notes" on public.notes for all
-  using (user_id = (select auth.jwt() ->> 'sub'))
-  with check (user_id = (select auth.jwt() ->> 'sub'));
-
--- Seed one starter non-negotiable when a profile is created.
-create or replace function public.handle_new_profile()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-begin
-  insert into public.rituals (user_id, label) values (new.id, 'Up by 10:00');
-  return new;
-end; $$;
-
-create trigger on_profile_created
-  after insert on public.profiles
-  for each row execute function public.handle_new_profile();
+-- 2026-07-20 · Daily, together — crews, instants, reactions, invites, room.
+-- Applied live 2026-07-20; full definitions in this repo's history and the DB.
+-- Tables: crews (name, unique invite code, owner), crew_members (crew_id+user_id),
+--   instants (owner, kind task|ritual, ref_id, label denormalized at capture,
+--   date, storage path), reactions (instant_id+user_id+emoji of 🔥💪👏😮).
+-- Helpers (security definer): my_crews(), same_crew(other).
+-- RLS law: crews/members visible to members; instants readable by owner OR
+--   same_crew(owner); reactions follow instant visibility; all writes self-only.
+-- RPCs: create_crew(name) [one crew per user, 6 max], join_crew(code),
+--   invite_info(code) [granted to anon — powers the /c/CODE landing],
+--   leave_crew() [empty crews are deleted], room_status(d) [per-member counts
+--   + name + avatar, never task text].
+-- Storage: private bucket "instants" (1MB cap, image/jpeg), path <userId>/<uuid>.jpg;
+--   policies: owner write/delete, read for owner OR same_crew(path owner).
+-- push_subs: + tz column (IANA timezone captured at subscribe).
