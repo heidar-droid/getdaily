@@ -1816,8 +1816,8 @@ kbd {
   -webkit-mask-repeat:no-repeat;-webkit-mask-position:center;-webkit-mask-size:contain;
   mask-repeat:no-repeat;mask-position:center;mask-size:contain;
   animation:inkIn .6s var(--ease-spring)}
-.card-ink .ink-sketch{color:var(--paper)}
-@keyframes inkIn{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:.85;transform:none}}
+.card-ink .ink-sketch{color:var(--paper);opacity:.5}
+@keyframes inkIn{from{opacity:0;transform:translateY(8px) scale(.9)}}
 #tasks-empty,#notes-empty,#proof-empty{text-align:center}
 #tasks-empty{opacity:1;color:color-mix(in srgb,currentColor 55%,transparent)}
 .crew-empty .ink-sketch{height:66px;margin-bottom:.55rem}
