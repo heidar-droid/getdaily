@@ -1,7 +1,8 @@
 /* Daily — client (public, multi-user). Clerk auth + Supabase Postgres w/ RLS. */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Clerk } from "https://esm.sh/@clerk/clerk-js@5";
-import { renderShareCard, shareOrDownload, downloadCard } from "/app/share-card.js";
+import { renderShareCard, shareOrDownload, downloadCard,
+         renderFinal, animateCard, shareAnimated, loadInstantImages, videoType } from "/app/share-card.js";
 
 const CLERK_PK = "pk_live_Y2xlcmsuZ2V0ZGFpbHkuZGF5JA";
 const clerk = new Clerk(CLERK_PK);
@@ -696,7 +697,7 @@ $("#crop-save").addEventListener("click", async () => {
 const TOUR_STEPS = [
   { sel: ".card-hero", text: "This ring fills as you finish today's tasks. Small wins, made visible." },
   { sel: "#card-rituals", text: "Non-negotiables — the few things you do every single day. They reset each morning and build a streak." },
-  { sel: "#share-btn", text: "When a streak is worth flexing, share it. This turns your streaks into a card for your Story, no task text ever included." },
+  { sel: "#share-btn", text: "When a streak is worth flexing, share it. Three card styles — streak, proof, and a fan of your photos that moves as a live video Story. No task text ever included." },
   { sel: ".card-ink", text: "Today's tasks. Done work stays on the board — wins should be seen." },
   { sel: "#card-notes", text: "Catch thoughts here as they come. Each one is saved with its moment." },
   { sel: "#proof-card", text: "Check something off and a little camera appears — your photo pins to that exact check, and every shot lands here: your private gallery of proof." },
@@ -831,6 +832,9 @@ async function start() {
 const shareSheet = $("#share-sheet");
 const shareCanvas = $("#share-canvas");
 let shareTheme = "dark";
+let shareKind = localStorage.getItem("daily.sharekind") || "streak";
+let shareInstants = [];   // latest OWN instants, preloaded as Images — never a crewmate's
+let sharePreview = null;  // running fan animation controller
 
 function shareData() {
   const streaks = state.rituals
@@ -842,6 +846,7 @@ function shareData() {
   const d = asDate(viewDate);
   return {
     streaks,
+    instants: shareInstants,
     completion: { done: state.tasks.filter((t) => t.done).length, total: state.tasks.length },
     dateLabel: d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
   };
@@ -852,16 +857,56 @@ function paintShareFlip() {
   $("#share-theme-light").classList.toggle("on", shareTheme === "light");
 }
 
-function openShareSheet() {
+function paintShareKinds() {
+  ["streak", "proof", "fan"].forEach((k) => {
+    const b = $("#share-kind-" + k);
+    b.classList.toggle("on", shareKind === k);
+    if (k === "proof") b.disabled = !shareInstants.length;
+    if (k === "fan") b.disabled = shareInstants.length < 2;
+  });
+}
+
+function startSharePreview() {
+  if (sharePreview) { sharePreview.stop(); sharePreview = null; }
+  // only the fan moves — streak and proof are stills
+  if (shareKind === "fan") {
+    sharePreview = animateCard(shareCanvas, shareKind, shareData(), shareTheme);
+  } else {
+    renderFinal(shareCanvas, shareKind, shareData(), shareTheme);
+  }
+}
+
+async function loadShareInstants() {
+  if (shareInstants.length) return;
+  const { data } = await sb.from("instants")
+    .select("path,label,created_at,date")
+    .eq("user_id", uid())
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const rows = [];
+  for (const r of data || []) {
+    try { rows.push({ src: await instSrc(r.path), label: r.label, created_at: r.created_at, date: r.date }); }
+    catch { /* unreadable path — skip */ }
+  }
+  shareInstants = await loadInstantImages(rows);
+}
+
+async function openShareSheet() {
   shareTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-  paintShareFlip();
-  renderShareCard(shareCanvas, shareData(), shareTheme);
   const go = $("#share-go");
   go.textContent = "Share"; go.classList.remove("done");
   backdrop.hidden = false; shareSheet.hidden = false;
   backdrop.classList.remove("closing"); shareSheet.classList.remove("closing");
+  // photos land async; the streak card is up instantly either way
+  try { await loadShareInstants(); } catch { shareInstants = []; }
+  if ((shareKind === "proof" && !shareInstants.length) ||
+      (shareKind === "fan" && shareInstants.length < 2)) shareKind = "streak";
+  paintShareFlip();
+  paintShareKinds();
+  startSharePreview();
 }
 function closeShareSheet() {
+  if (sharePreview) { sharePreview.stop(); sharePreview = null; }
   backdrop.classList.add("closing"); shareSheet.classList.add("closing");
   setTimeout(() => { backdrop.hidden = true; shareSheet.hidden = true; }, 280);
 }
@@ -869,9 +914,22 @@ function flipShareTheme(t) {
   if (t === shareTheme) return;
   shareTheme = t;
   paintShareFlip();
+  if (sharePreview) sharePreview.stop();
   shareCanvas.classList.add("flipping");
-  setTimeout(async () => {
-    await renderShareCard(shareCanvas, shareData(), shareTheme);
+  setTimeout(() => {
+    startSharePreview();
+    shareCanvas.classList.remove("flipping");
+  }, 180);
+}
+function pickShareKind(k) {
+  if (k === shareKind || $("#share-kind-" + k).disabled) return;
+  shareKind = k;
+  localStorage.setItem("daily.sharekind", k);
+  paintShareKinds();
+  if (sharePreview) sharePreview.stop();
+  shareCanvas.classList.add("flipping");
+  setTimeout(() => {
+    startSharePreview();
     shareCanvas.classList.remove("flipping");
   }, 180);
 }
@@ -879,16 +937,32 @@ function flipShareTheme(t) {
 $("#share-btn").addEventListener("click", openShareSheet);
 $("#share-theme-dark").addEventListener("click", () => flipShareTheme("dark"));
 $("#share-theme-light").addEventListener("click", () => flipShareTheme("light"));
+["streak", "proof", "fan"].forEach((k) =>
+  $("#share-kind-" + k).addEventListener("click", () => pickShareKind(k)));
 $("#share-save").addEventListener("click", async () => {
   const b = $("#share-save");
+  if (sharePreview) sharePreview.stop();
+  await renderFinal(shareCanvas, shareKind, shareData(), shareTheme);
   await downloadCard(shareCanvas);
+  startSharePreview();
   b.textContent = "saved ✓";
   setTimeout(() => { b.textContent = "save"; }, 1600);
 });
 $("#share-go").addEventListener("click", async () => {
   const go = $("#share-go");
-  const result = await shareOrDownload(shareCanvas);
-  if (result === "cancelled") return;
+  if (go.disabled) return;
+  go.disabled = true;
+  if (sharePreview) { sharePreview.stop(); sharePreview = null; }
+  let result;
+  if (shareKind === "fan") {
+    if (videoType()) go.textContent = "rendering…";
+    result = await shareAnimated(shareCanvas, shareKind, shareData(), shareTheme);
+  } else {
+    await renderFinal(shareCanvas, shareKind, shareData(), shareTheme);
+    result = await shareOrDownload(shareCanvas);
+  }
+  go.disabled = false;
+  if (result === "cancelled") { go.textContent = "Share"; startSharePreview(); return; }
   go.textContent = result === "shared" ? "Shared ✓" : "Saved ✓";
   go.classList.add("done");
   setTimeout(closeShareSheet, 900);

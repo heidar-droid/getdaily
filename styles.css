@@ -1275,6 +1275,14 @@ kbd {
 }
 
 /* ---------- share card ---------- */
+.share-kinds {
+  display: flex; justify-content: center; gap: .3rem;
+  background: var(--paper); border-radius: 999px; padding: .28rem;
+  width: max-content; margin: 0 auto 1rem;
+}
+.share-flip-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+.share-go:disabled { opacity: .7; cursor: default; }
+
 .head-actions { display: flex; gap: .45rem; }
 .share-btn svg { display: block; }
 .share-btn:hover { transform: translateY(-2px) scale(1.08); }
