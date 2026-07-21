@@ -18,6 +18,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css?v=20260721b">
+<style>
+/* ink sketches — inlined so a stale cached stylesheet can never strand the markup */
+.ink-sketch{display:block;width:auto;height:84px;margin:.45rem auto .6rem;opacity:.85;
+  user-select:none;-webkit-user-drag:none}
+html[data-theme="dark"] .ink-sketch{filter:invert(1) brightness(.95)}
+#tasks-empty,#notes-empty,#proof-empty{text-align:center}
+#tasks-empty{opacity:1;color:var(--ink-soft,#7d7d7d)}
+.crew-empty .ink-sketch{height:66px;margin-bottom:.55rem}
+</style>
 </head>
 <body>
 
