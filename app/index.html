@@ -283,6 +283,23 @@
   <p class="share-hint">the fan moves — shares as a live card on your Story</p>
 </aside>
 
+<!-- crew invite (QR card) -->
+<aside id="qrcrew-sheet" class="sheet share-sheet" hidden aria-label="Invite to your crew">
+  <div class="sheet-handle"></div>
+  <p class="share-title" id="qrcrew-title">Invite to your crew</p>
+  <div class="share-stage">
+    <canvas id="qrcrew-canvas" aria-label="Crew invite card with QR code"></canvas>
+  </div>
+  <div class="share-controls">
+    <button id="qrcrew-copy" class="share-save">copy link</button>
+    <span class="share-actions">
+      <button id="qrcrew-save" class="share-save" aria-label="Save image">save</button>
+      <button id="qrcrew-go" class="share-go">Share</button>
+    </span>
+  </div>
+  <p class="share-hint">scan lands them in the room — signup included</p>
+</aside>
+
 <!-- milestone toast -->
 <button id="milestone-toast" class="milestone-toast" hidden>
   <span class="mt-burst" aria-hidden="true"></span>

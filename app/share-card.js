@@ -1,3 +1,5 @@
+import { qrMatrix } from "/app/qr.js";
+
 // share-card.js — renders the streak-flex share card on a canvas and hands it
 // to the native share sheet (or downloads it where sharing isn't supported).
 // Hand-drawn Canvas 2D, no dependencies. Card is 1080x1920 (IG Story).
@@ -112,11 +114,11 @@ export function canNativeShare() {
   return !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] }));
 }
 
-export async function downloadCard(canvas) {
+export async function downloadCard(canvas, name = "daily-streak.png") {
   const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "daily-streak.png";
+  a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   return "downloaded";
@@ -481,3 +483,60 @@ async function loadInstantImages(rows) {
 }
 
 export { renderFinal, animateCard, shareAnimated, loadInstantImages, videoType };
+
+// ---------- crew invite card (QR) ----------
+// A story-format card for the crew invite: name, filled seats, scannable QR.
+// The QR encodes the same /c/CODE link — a new face on the existing mechanic.
+
+export async function renderCrewCard(canvas, { name, link, initials }) {
+  await document.fonts.ready;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#111111"; ctx.fillRect(0, 0, W, H);
+  const t = THEMES.dark;
+  ctx.textBaseline = "middle";
+  drawBrandFrame(ctx, t, DUR);
+  ctx.textAlign = "center";
+  ctx.fillStyle = t.ink; ctx.font = F(500, 64);
+  ctx.fillText(ellipsize(ctx, name, W - 200), W / 2, 400);
+  // filled seats
+  const R = 46, overlap = 26, count = Math.min(initials.length, 6);
+  const totalW = count * R * 2 - (count - 1) * overlap;
+  let cx = (W - totalW) / 2 + R;
+  for (let i = 0; i < count; i++) {
+    ctx.beginPath(); ctx.arc(cx, 520, R, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,.14)"; ctx.fill();
+    ctx.lineWidth = 8; ctx.strokeStyle = "#111111"; ctx.stroke();
+    ctx.fillStyle = t.ink; ctx.font = F(500, 34);
+    ctx.fillText(initials[i], cx, 522);
+    cx += R * 2 - overlap;
+  }
+  // QR panel
+  const { size, matrix } = qrMatrix(link);
+  const panel = 640, pad = 44, px = (W - panel) / 2, py = 660;
+  ctx.fillStyle = "#f4f4f4";
+  rr(ctx, px, py, panel, panel, 48); ctx.fill();
+  const cell = (panel - pad * 2) / size;
+  ctx.fillStyle = "#111111";
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++)
+      if (matrix[y][x])
+        ctx.fillRect(px + pad + x * cell, py + pad + y * cell, Math.ceil(cell), Math.ceil(cell));
+  ctx.font = F(300, 40); ctx.fillStyle = t.soft;
+  ctx.fillText("scan to join the crew", W / 2, py + panel + 96);
+  ctx.font = F(500, 52); ctx.fillStyle = t.ink;
+  ctx.fillText(link.replace(/^https?:\/\//, ""), W / 2, py + panel + 178);
+  const d = new Date();
+  drawFooterFrame(ctx, t, d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }), DUR);
+}
+
+export async function shareCanvasPng(canvas, filename) {
+  const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+  const file = new File([blob], filename, { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return "shared"; }
+    catch (e) { if (e.name === "AbortError") return "cancelled"; }
+  }
+  return downloadCard(canvas, filename);
+}
+

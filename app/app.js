@@ -2,7 +2,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Clerk } from "https://esm.sh/@clerk/clerk-js@5";
 import { renderShareCard, shareOrDownload, downloadCard,
-         renderFinal, animateCard, shareAnimated, loadInstantImages, videoType } from "/app/share-card.js";
+         renderFinal, animateCard, shareAnimated, loadInstantImages, videoType,
+         renderCrewCard, shareCanvasPng } from "/app/share-card.js";
 
 const CLERK_PK = "pk_live_Y2xlcmsuZ2V0ZGFpbHkuZGF5JA";
 const clerk = new Clerk(CLERK_PK);
@@ -701,7 +702,7 @@ const TOUR_STEPS = [
   { sel: ".card-ink", text: "Today's tasks. Done work stays on the board — wins should be seen." },
   { sel: "#card-notes", text: "Catch thoughts here as they come. Each one is saved with its moment." },
   { sel: "#proof-card", text: "Check something off and a little camera appears — your photo pins to that exact check, and every shot lands here: your private gallery of proof." },
-  { sel: "#crew-card", text: "Start a crew — 3 to 6 people who see each other show up. One link invites anyone, even friends without Daily." },
+  { sel: "#crew-card", text: "Start a crew — 3 to 6 people who see each other show up. One link — or a QR card from the invite button — brings in anyone, even friends without Daily." },
   { sel: "#days", text: "Your last 14 days. Tap any dot to look back. And one detail: your day rolls over at 04:00, not midnight." },
   { sel: "#profile-btn", text: "Your profile lives here — themes, and reminders: Daily can nudge you before a streak breaks. Once you've shown up, a card also offers to turn them on, right on your day." },
 ];
@@ -1715,7 +1716,46 @@ async function shareCrewLink() {
   showToast("link copied — send it to your people");
 }
 
-$("#crew-invite-btn").addEventListener("click", shareCrewLink);
+// invite → the QR crew card sheet (the link still rides underneath)
+const qrSheet = $("#qrcrew-sheet");
+async function openQrCrewSheet() {
+  if (!crew) return;
+  $("#qrcrew-title").textContent = `Invite to ${crew.name}`;
+  const initials = (roomMembers.length ? roomMembers : [{ name: "?" }])
+    .map((m) => (m.name || "?").slice(0, 1).toUpperCase()).slice(0, 6);
+  await renderCrewCard($("#qrcrew-canvas"), { name: crew.name, link: crewLink(), initials });
+  const go = $("#qrcrew-go");
+  go.textContent = "Share"; go.classList.remove("done");
+  backdrop.hidden = false; qrSheet.hidden = false;
+  backdrop.classList.remove("closing"); qrSheet.classList.remove("closing");
+}
+function closeQrCrewSheet() {
+  backdrop.classList.add("closing"); qrSheet.classList.add("closing");
+  setTimeout(() => { backdrop.hidden = true; qrSheet.hidden = true; }, 280);
+}
+$("#crew-invite-btn").addEventListener("click", openQrCrewSheet);
+$("#qrcrew-copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(crewLink()); showToast("Invite link copied"); }
+  catch { showToast("Couldn't reach the clipboard"); }
+});
+$("#qrcrew-save").addEventListener("click", async () => {
+  const b = $("#qrcrew-save");
+  await downloadCard($("#qrcrew-canvas"), "daily-crew-invite.png");
+  b.textContent = "saved ✓";
+  setTimeout(() => { b.textContent = "save"; }, 1600);
+});
+$("#qrcrew-go").addEventListener("click", async () => {
+  const go = $("#qrcrew-go");
+  const result = await shareCanvasPng($("#qrcrew-canvas"), "daily-crew-invite.png");
+  if (result === "cancelled") return;
+  go.textContent = result === "shared" ? "Shared ✓" : "Saved ✓";
+  go.classList.add("done");
+  setTimeout(closeQrCrewSheet, 900);
+});
+backdrop.addEventListener("click", () => { if (!qrSheet.hidden) closeQrCrewSheet(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !qrSheet.hidden) closeQrCrewSheet();
+});
 $("#crew-create-btn").addEventListener("click", () => {
   $("#crew-empty").hidden = true;
   $("#crew-form").hidden = false;
