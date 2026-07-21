@@ -1807,3 +1807,20 @@ kbd {
   cursor: pointer; transition: background .25s, color .25s, border-color .25s;
 }
 .cam-vis-opt.on { background: #fff; border-color: #fff; color: #121212; }
+
+/* ---------- ink sketches: empty states (additive, 2026-07-21) ---------- */
+.ink-sketch {
+  display: block; width: auto; height: 84px; margin: .45rem auto .6rem;
+  opacity: .85; user-select: none; -webkit-user-drag: none;
+  animation: inkIn .6s var(--ease-spring);
+}
+html[data-theme="dark"] .ink-sketch { filter: invert(1) brightness(.95); }
+@keyframes inkIn {
+  from { opacity: 0; transform: translateY(8px) scale(.9); }
+  to { opacity: .85; transform: none; }
+}
+#tasks-empty, #notes-empty, #proof-empty { text-align: center; }
+/* .empty's opacity .5 composites over the sketch and washes it out —
+   full-strength container, text quieted via color instead */
+#tasks-empty { opacity: 1; color: var(--ink-soft); }
+.crew-empty .ink-sketch { height: 66px; margin-bottom: .55rem; }
