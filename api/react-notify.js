@@ -56,7 +56,8 @@ module.exports = async (req, res) => {
   let delivered = 0;
   for (const s of subs) {
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload,
+        { TTL: 3600, urgency: "high" });
       delivered++;
     } catch (e) {
       if (e.statusCode === 404 || e.statusCode === 410) {

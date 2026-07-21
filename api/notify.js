@@ -52,7 +52,10 @@ async function send(sub, payload) {
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      // high urgency: deliver now, even to an idle phone — normal-urgency web
+      // pushes get deferred by Apple for power saving and can silently expire.
+      { TTL: 10800, urgency: "high" }
     );
     return true;
   } catch (e) {
