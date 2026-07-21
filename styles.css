@@ -1808,19 +1808,16 @@ kbd {
 }
 .cam-vis-opt.on { background: #fff; border-color: #fff; color: #121212; }
 
-/* ---------- ink sketches: empty states (additive, 2026-07-21) ---------- */
-.ink-sketch {
-  display: block; width: auto; height: 84px; margin: .45rem auto .6rem;
-  opacity: .85; user-select: none; -webkit-user-drag: none;
-  animation: inkIn .6s var(--ease-spring);
-}
-html[data-theme="dark"] .ink-sketch { filter: invert(1) brightness(.95); }
-@keyframes inkIn {
-  from { opacity: 0; transform: translateY(8px) scale(.9); }
-  to { opacity: .85; transform: none; }
-}
-#tasks-empty, #notes-empty, #proof-empty { text-align: center; }
-/* .empty's opacity .5 composites over the sketch and washes it out —
-   full-strength container, text quieted via color instead */
-#tasks-empty { opacity: 1; color: var(--ink-soft); }
-.crew-empty .ink-sketch { height: 66px; margin-bottom: .55rem; }
+/* ---------- ink sketches: empty states (additive, 2026-07-21, stencil rev) ---------- */
+/* ink sketches — stencil approach: mask + token color, correct on every card in every theme */
+.ink-sketch{display:none}
+@supports ((-webkit-mask-repeat:no-repeat) or (mask-repeat:no-repeat)){.ink-sketch{display:block}}
+.ink-sketch{height:84px;margin:.45rem auto .6rem;background:currentColor;color:var(--ink);opacity:.85;
+  -webkit-mask-repeat:no-repeat;-webkit-mask-position:center;-webkit-mask-size:contain;
+  mask-repeat:no-repeat;mask-position:center;mask-size:contain;
+  animation:inkIn .6s var(--ease-spring)}
+.card-ink .ink-sketch{color:var(--paper)}
+@keyframes inkIn{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:.85;transform:none}}
+#tasks-empty,#notes-empty,#proof-empty{text-align:center}
+#tasks-empty{opacity:1;color:color-mix(in srgb,currentColor 55%,transparent)}
+.crew-empty .ink-sketch{height:66px;margin-bottom:.55rem}
